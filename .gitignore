@@ -1,0 +1,27 @@
+# === ЗАГАЛЬНЕ  ===
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
+
+# === БЕЗПЕКА  ===
+.env
+.env.*
+!.env.example
+
+# === IDE (WebStorm / VS Code) ===
+.idea/
+.vscode/
+*.iml
+
+# === POSTGRES / DOCKER DATA ===
+pgdata/
+postgres-data/
+*.sqlite
+
+# === SPECIFIC NESTJS ===
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

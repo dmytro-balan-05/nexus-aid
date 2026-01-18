@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: nexus_postgres
+    environment:
+      POSTGRES_DB: nexus-db
+      POSTGRES_USER: nexus_user
+      POSTGRES_PASSWORD: nexus_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - nexus_pg_data:/var/lib/postgresql/data
+
+volumes:
+  nexus_pg_data:
+

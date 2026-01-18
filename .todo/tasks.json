@@ -1,0 +1,24 @@
+[
+  {
+    "id": "TASK_1",
+    "priority": "LOW",
+    "tags": [],
+    "title": "Auth",
+    "description": "Make auth including crypting",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 1,
+        "day": 18
+      },
+      "time": {
+        "hour": 20,
+        "minute": 37,
+        "second": 45,
+        "nano": 755555600
+      }
+    },
+    "isImported": false
+  }
+]
