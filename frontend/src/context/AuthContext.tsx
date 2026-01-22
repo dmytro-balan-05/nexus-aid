@@ -4,20 +4,20 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
-interface User {
+// ПОВЕРТАЄМО ТВІЙ ОРИГІНАЛЬНИЙ ІНТЕРФЕЙС
+export interface User{
     id: string;
     email: string;
     name: string | null;
     role: 'user' | 'volonteer' | 'admin';
     avatar: string | null;
-    provider: string;
+    provider: string; // Поле повернуто
 }
 
-// Типізація самого контексту
 interface AuthContextType {
     user: User | null;
-    login: (token: string) => void;
-    logout: () => void;
+    login: (userData: User) => void;
+    logout: () => Promise<void>;
     isLoading: boolean;
     refreshProfile: () => Promise<void>;
 }
@@ -31,13 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const fetchUser = async () => {
         try {
-            // Робимо запит за даними профілю
-            const userData = await api.get('/users/me');
-            setUser(userData);
-        } catch (error) {
-            console.error('Failed to fetch user', error);
-            // Якщо токен невалідний — викидаємо юзера
-            localStorage.removeItem('jwt_token');
+            // Вказуємо тип User безпосередньо в generic запиту
+            const data = await api.get<User>('/auth/me');
+
+            if (data) {
+                // Використовуємо unknown як проміжний етап для безпечного касту
+                setUser(data as unknown as User);
+            }
+        } catch (err) {
             setUser(null);
         } finally {
             setIsLoading(false);
@@ -45,27 +46,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        const token = localStorage.getItem('jwt_token');
-        if (token) {
-            fetchUser();
-        } else {
-            setIsLoading(false);
-        }
+        fetchUser();
     }, []);
 
-    const login = (token: string) => {
-        localStorage.setItem('jwt_token', token);
-        fetchUser();
+    const login = (userData: User) => {
+        setUser(userData);
         router.push('/profile');
     };
 
-    const logout = () => {
-        localStorage.removeItem('jwt_token');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_role');
-
-        setUser(null);
-        router.push('/login');
+    const logout = async () => {
+        try {
+            await api.post('/auth/logout');
+        } catch (err) {
+            console.error('Logout error:', err);
+        } finally {
+            setUser(null);
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('user_role');
+            router.push('/login');
+        }
     };
 
     const refreshProfile = async () => {

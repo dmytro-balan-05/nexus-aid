@@ -22,9 +22,12 @@ export class AuthService {
     const payload = { username: user.email, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
-      userId: user.id,
-      role: user.role,
-      name: user.name,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      }
     };
   }
   async register(dto: RegisterDto) {

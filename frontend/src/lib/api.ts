@@ -1,47 +1,22 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import axios from 'axios';
 
-// Функція для отримання заголовків з токеном
-const getHeaders = () => {
-    const headers: HeadersInit = {
+// Твій бекенд працює на 3000 порту
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+export const api = axios.create({
+    baseURL: API_URL,
+    withCredentials: true,
+    headers: {
         'Content-Type': 'application/json',
-    };
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+    },
+});
+
+
+api.interceptors.response.use(
+    (response) => {
+        return response.data;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-    return headers;
-};
-
-export const api = {
-    get: async (endpoint: string) => {
-        const res = await fetch(`${API_URL}${endpoint}`, {
-            method: 'GET',
-            headers: getHeaders(),
-        });
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
-    },
-
-    post: async (endpoint: string, body: any) => {
-        const res = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(body),
-        });
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.message || 'Error occurred');
-        }
-        return res.json();
-    },
-
-    patch: async (endpoint: string, body: any) => {
-        const res = await fetch(`${API_URL}${endpoint}`, {
-            method: 'PATCH',
-            headers: getHeaders(),
-            body: JSON.stringify(body),
-        });
-        if (!res.ok) throw new Error('Failed to update');
-        return res.json();
-    },
-};
+);

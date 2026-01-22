@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { api } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, User } from '@/context/AuthContext';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -13,27 +13,14 @@ export default function LoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
-
         try {
-            const res = await api.post('/auth/login', { email, password });
-
-            if (res.access_token) {
-                // --- ДОДАЛИ ТІЛЬКИ ЦЕ (щоб знати, хто ми) ---
-                if (res.userId) localStorage.setItem('user_id', res.userId);
-                if (res.role) localStorage.setItem('user_role', res.role);
-                window.dispatchEvent(new Event('storage')); // Оновлюємо хедер
-                // -------------------------------------------
-
-                login(res.access_token);
-            } else {
-                setError('Не отримано токен від сервера');
-            }
+            const userData = await api.post<User>('/auth/login', { email, password });
+            login(userData as unknown as User);
         } catch (err) {
             if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Невідома помилка входу');
+                setError('Помилка входу');
             }
         }
     };
