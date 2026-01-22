@@ -24,14 +24,16 @@ model User {
   password  String?
   name      String?
   avatar    String?
-  provider  String   @default("local")
+  provider  String   @default("local") // 'local', 'google', 'github'
   socialId  String?
 
-  role      Role   @default(user)
+  role      Role     @default(user)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   campaigns Campaign[]
+
+  @@unique([provider, socialId])
 }
 
 model Campaign {

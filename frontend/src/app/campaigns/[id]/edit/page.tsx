@@ -3,6 +3,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '@/lib/api'
 
 export default function EditCampaignPage() {
     const router = useRouter();
@@ -71,35 +72,30 @@ export default function EditCampaignPage() {
         setIsLoading(true);
 
         try {
-            const token = localStorage.getItem('jwt_token');
-            if (!token) throw new Error('Авторизуйтесь');
-
             const data = new FormData();
-            // Відправляємо всі поля
             Object.entries(formData).forEach(([key, value]) => {
                 data.append(key, String(value));
             });
-            // Картинку шлемо в масив images, якщо вона є
+
             if (formData.imageURL) {
                 data.append('image', formData.imageURL);
             }
 
-            // Нові документи
             docFiles.forEach((file) => data.append('documents', file));
 
-            const res = await fetch(`http://localhost:3000/campaigns/${id}`, {
-                method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: data,
+            // ЗМІНЕНО: Використовуємо наш axios (api)
+            // Він автоматично візьме куку з браузера і відправить на сервер
+            await api.patch(`/campaigns/${id}`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-
-            if (!res.ok) throw new Error('Помилка оновлення');
 
             router.push(`/campaigns/${id}`);
             router.refresh();
 
         } catch (err: any) {
-            setError(err.message);
+            // Axios ховає помилку в err.response.data
+            const message = err.response?.data?.message || err.message || 'Помилка оновлення';
+            setError(message);
             setIsLoading(false);
         }
     };

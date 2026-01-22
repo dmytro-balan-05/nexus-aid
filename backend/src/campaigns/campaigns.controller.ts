@@ -109,7 +109,7 @@ export class CampaignsController {
     };
 
     // Мы передаем ID юзера. Если сервис его не ждет - читай Шаг 2.
-    return this.campaignsService.update(id, updateCampaignDto, req.user.userId);
+    return this.campaignsService.update(id, updateCampaignDto, req.user.id);
   }
 
   @Get()
