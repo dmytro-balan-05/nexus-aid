@@ -100,13 +100,30 @@ export default async function CampaignDetailPage({ params }: Props) {
                         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 mt-8">
                             <h3 className="font-bold text-lg mb-4">📄 Документи та звітність</h3>
                             <ul className="space-y-2">
-                                {campaign.documents.map((doc, index) => (
-                                    <li key={index}>
-                                        <a href={doc} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2">
-                                            📎 Переглянути документ {index + 1}
-                                        </a>
-                                    </li>
-                                ))}
+                                {campaign.documents.map((doc, index) => {
+                                    // 1. Визначаємо базовий URL бекенду
+                                    const baseUrl = 'http://localhost:3000';
+
+                                    // 2. Формуємо повне посилання
+                                    // Якщо doc починається на '/', прибираємо його, щоб не було //
+                                    const cleanDocPath = doc.startsWith('/') ? doc.substring(1) : doc;
+                                    const fullDocUrl = doc.startsWith('http')
+                                        ? doc
+                                        : `${baseUrl}/${cleanDocPath}`;
+
+                                    return (
+                                        <li key={index}>
+                                            <a
+                                                href={fullDocUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:underline flex items-center gap-2"
+                                            >
+                                                📎 Переглянути документ {index + 1}
+                                            </a>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         </div>
                     )}
@@ -129,9 +146,6 @@ export default async function CampaignDetailPage({ params }: Props) {
                         <button className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition shadow-lg hover:shadow-xl transform active:scale-95">
                             Підтримати збір
                         </button>
-
-                        {/* --- ОСЬ ТУТ БУВ КОСЯК --- */}
-                        {/* Тепер тут тільки компонент, який сам вирішує, показуватись чи ні */}
                         <EditButton campaignId={campaign.id} authorId={campaign.author.id} />
 
                         <div className="mt-8 pt-6 border-t border-gray-100">

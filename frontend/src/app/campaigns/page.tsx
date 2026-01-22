@@ -91,9 +91,18 @@ export default async function CampaignsPage({ searchParams }: Props) {
                                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                 />
                                 <div className="absolute top-3 left-3">
-                  <span className="bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded uppercase shadow-sm">
-                    {campaign.category}
-                  </span>
+                                    <div className="absolute top-2 left-2 flex gap-2">
+                                  <span className="bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded uppercase shadow-sm">
+                                    {campaign.category}
+                                  </span>
+                                        <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase shadow-sm ${
+                                            campaign.status === 'active' ? 'bg-green-500 text-white' :
+                                                campaign.status === 'completed' ? 'bg-blue-500 text-white' :
+                                                    'bg-yellow-500 text-black'
+                                        }`}>
+                                    {campaign.status}
+                                  </span>
+                                    </div>
                                 </div>
                             </div>
 

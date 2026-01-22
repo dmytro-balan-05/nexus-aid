@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext'; // Використовуємо наш хук
 
 interface Props {
     campaignId: string;
@@ -8,19 +9,20 @@ interface Props {
 }
 
 export default function EditButton({ campaignId, authorId }: Props) {
+    const { user, isLoading } = useAuth();
 
-    if (typeof window === 'undefined') {
-        return null;
-    }
+    if (isLoading) return null;
 
-    const myId = localStorage.getItem('user_id');
-    const myRole = localStorage.getItem('user_role');
+    const canEdit = user && (
+        user.id === authorId ||
+        user.role === 'volonteer' ||
+        user.role === 'admin'
+    );
 
-    const canEdit = (myId && myId.length > 5) && (myId === authorId || myRole === 'admin');
     if (!canEdit) return null;
 
     return (
-        <div className="mt-4 text-center">
+        <div className="mt-8 pt-6 border-t border-gray-100">
             <Link
                 href={`/campaigns/${campaignId}/edit`}
                 className="inline-block text-gray-400 hover:text-black text-sm underline transition"

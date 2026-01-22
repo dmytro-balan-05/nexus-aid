@@ -61,6 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = () => {
         localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_role');
+
         setUser(null);
         router.push('/login');
     };
