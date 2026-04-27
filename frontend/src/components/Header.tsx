@@ -28,6 +28,11 @@ export default function Header() {
                             <Link href="/about" className="text-gray-500 hover:text-gray-900 font-medium transition">
                                 Про нас
                             </Link>
+                            {user?.role === 'admin' && (
+                                <Link href="/admin/users" className="text-gray-500 hover:text-gray-900 font-medium transition">
+                                    Управління юзерами
+                                </Link>
+                            )}
                         </nav>
                     </div>
 

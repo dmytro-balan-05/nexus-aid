@@ -3,6 +3,9 @@ import {
   Get,
   Patch,
   Body,
+  Query,
+  Param,
+  ForbiddenException,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -19,6 +22,32 @@ export class UsersController {
   @Get('me')
   getProfile(@Request() req) {
     return this.usersService.getProfile(req.user.id);
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async getAll(
+    @Query('q') q: string,
+    @Query('role') role: string,
+    @Request() req,
+  ) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Only admin');
+    }
+    return this.usersService.getAll(q, role);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/role')
+  async changeRole(
+    @Param('id') id: string,
+    @Body() body: { role: 'user' | 'volonteer' },
+    @Request() req,
+  ) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Only admin');
+    }
+
+    return this.usersService.changeRole(id, body.role, req.user);
   }
 
   @UseGuards(JwtAuthGuard)
