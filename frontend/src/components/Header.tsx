@@ -1,13 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-// ПЕРЕВІР ЦЕЙ ІМПОРТ: має вести до твого контексту
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 
 export default function Header() {
-    // Припускаємо, що твій контекст віддає user та logout
-    // Якщо у тебе інакше (наприклад, user: null), я скажу як виправити
+
     const { user, logout } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -36,33 +34,33 @@ export default function Header() {
                     {/* ПРАВА ЧАСТИНА (AUTH) */}
                     <div className="hidden md:flex items-center gap-4">
                         {user ? (
-                            // ЯКЩО АВТОРИЗОВАНИЙ
                             <>
-                                <div className="text-right mr-2">
-                                    <p className="text-sm font-bold text-gray-900">
-                                        {user.name || user.email} {/* Адаптуй під поля твого юзера */}
-                                    </p>
-                                    <p className="text-xs text-gray-500 uppercase">{user.role || 'User'}</p>
-                                </div>
-
                                 <Link
                                     href="/profile"
-                                    // Добавил 'overflow-hidden', чтобы картинка обрезалась кругом
-                                    className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 hover:ring-2 hover:ring-blue-500 transition ml-2 flex items-center justify-center"
+                                    className="flex items-center gap-3 hover:bg-gray-50 px-2 py-1 rounded transition cursor-pointer"
                                 >
-                                    {user.avatar ? (
-                                        // ВАРИАНТ 1: Если есть аватарка
-                                        <img
-                                            src={user.avatar}
-                                            alt="Profile"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        // ВАРИАНТ 2: Если аватарки нет (показываем букву)
-                                        <span className="text-gray-600 font-bold">
-            {(user.name?.[0] || 'U').toUpperCase()}
-        </span>
-                                    )}
+                                    <div className="text-right">
+                                        <p className="text-sm font-bold text-gray-900">
+                                            {user.name || user.email}
+                                        </p>
+                                        <p className="text-xs text-gray-500 uppercase">
+                                            {user.role || 'User'}
+                                        </p>
+                                    </div>
+
+                                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                        {user.avatar ? (
+                                            <img
+                                                src={user.avatar}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-gray-600 font-bold">
+                            {(user.name?.[0] || 'U').toUpperCase()}
+                        </span>
+                                        )}
+                                    </div>
                                 </Link>
 
                                 <button
@@ -91,7 +89,7 @@ export default function Header() {
                         )}
                     </div>
 
-                    {/* Мобільне меню (гамбургер) */}
+                    {/* Бэргер */}
                     <div className="md:hidden flex items-center">
                         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-500 p-2">
                             ☰
@@ -100,7 +98,7 @@ export default function Header() {
                 </div>
             </div>
 
-            {/* Мобільне меню (випадайка) */}
+            {/* Мобільне меню */}
             {isMenuOpen && (
                 <div className="md:hidden border-t border-gray-100 p-4 space-y-3 bg-white">
                     <Link href="/campaigns" className="block font-medium">Всі збори</Link>

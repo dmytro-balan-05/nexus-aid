@@ -1,12 +1,13 @@
-import { IsString, IsOptional, IsUrl, Length } from 'class-validator';
+import { IsOptional, IsString, IsUrl, ValidateIf } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
-  @Length(2, 50)
   name?: string;
 
   @IsOptional()
+  @IsString()
+  @ValidateIf((_, value) => value !== '')
   @IsUrl()
   avatar?: string;
 }

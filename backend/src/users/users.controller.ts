@@ -15,13 +15,15 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('me')
-  getMe(@Request() req) {
-    return this.usersService.getProfile(req.user.userId);
+  getProfile(@Request() req) {
+    return this.usersService.getProfile(req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch('me')
-  updateMe(@Request() req, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.updateProfile(req.user.userId, updateUserDto);
+  updateProfile(@Request() req, @Body() dto: UpdateUserDto) {
+    return this.usersService.updateProfile(req.user.id, dto);
   }
 }

@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-// Перевір шлях до компонента EditButton!
 import EditButton from '@/components/EditButton';
 
 // Інтерфейс даних
@@ -18,15 +17,13 @@ interface Campaign {
     images: string[];
     documents: string[];
     author: {
-        id: string; // <--- ID автора обов'язковий для перевірки
+        id: string;
         name: string;
         email: string;
     };
 }
 
-// Завантаження даних (SSR)
 async function getCampaign(id: string): Promise<Campaign> {
-    // cache: 'no-store' означає, що дані завжди свіжі
     const res = await fetch(`http://localhost:3000/campaigns/${id}`, { cache: 'no-store' });
     if (!res.ok) {
         if (res.status === 404) return notFound();
@@ -50,7 +47,6 @@ export default async function CampaignDetailPage({ params }: Props) {
     }
 
     const percent = Math.min((campaign.currentAmount / campaign.goalAmount) * 100, 100);
-    // Перша картинка або заглушка
     const mainImage = (campaign.images && campaign.images.length > 0)
         ? campaign.images[0]
         : 'https://placehold.co/800x400/png?text=NexusAid';
@@ -101,11 +97,8 @@ export default async function CampaignDetailPage({ params }: Props) {
                             <h3 className="font-bold text-lg mb-4">📄 Документи та звітність</h3>
                             <ul className="space-y-2">
                                 {campaign.documents.map((doc, index) => {
-                                    // 1. Визначаємо базовий URL бекенду
                                     const baseUrl = 'http://localhost:3000';
 
-                                    // 2. Формуємо повне посилання
-                                    // Якщо doc починається на '/', прибираємо його, щоб не було //
                                     const cleanDocPath = doc.startsWith('/') ? doc.substring(1) : doc;
                                     const fullDocUrl = doc.startsWith('http')
                                         ? doc

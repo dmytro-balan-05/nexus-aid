@@ -1,47 +1,62 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import {unlink} from "node:fs";
 
-// Функція для отримання заголовків з токеном
-const getHeaders = () => {
-    const headers: HeadersInit = {
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+const getHeaders = (): HeadersInit => {
+    return {
         'Content-Type': 'application/json',
     };
-    const token = localStorage.getItem('jwt_token');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
 };
 
 export const api = {
-    get: async (endpoint: string) => {
+    get: async <T = unknown>(endpoint: string): Promise<T | null> => {
         const res = await fetch(`${API_URL}${endpoint}`, {
             method: 'GET',
             headers: getHeaders(),
+            credentials: 'include',
         });
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
+
+        if (res.status === 401) {
+            return null;
+        }
+
+        const text = await res.text();
+        if (!text) return null;
+
+        return JSON.parse(text) as T;
     },
 
-    post: async (endpoint: string, body: any) => {
+    post: async <T = unknown>(endpoint: string, body: unknown): Promise<T> => {
         const res = await fetch(`${API_URL}${endpoint}`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(body),
+            credentials: 'include',
         });
+
         if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.message || 'Error occurred');
+            const text = await res.text();
+            throw new Error(text || 'Error occurred');
         }
-        return res.json();
+
+        const text = await res.text();
+        return text ? (JSON.parse(text) as T) : ({} as T);
     },
 
-    patch: async (endpoint: string, body: any) => {
+    patch: async <T = unknown>(endpoint: string, body: unknown): Promise<T> => {
         const res = await fetch(`${API_URL}${endpoint}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(body),
+            credentials: 'include',
         });
-        if (!res.ok) throw new Error('Failed to update');
-        return res.json();
+
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to update');
+        }
+
+        const text = await res.text();
+        return text ? (JSON.parse(text) as T) : ({} as T);
     },
 };

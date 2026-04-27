@@ -83,10 +83,10 @@ export default function EditCampaignPage() {
 
             docFiles.forEach((file) => data.append('documents', file));
 
-            // ЗМІНЕНО: Використовуємо наш axios (api)
-            // Він автоматично візьме куку з браузера і відправить на сервер
-            await api.patch(`/campaigns/${id}`, data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            await fetch(`/api/campaigns/${id}`, {
+                method: 'PATCH',
+                body: data,
+                credentials: 'include',
             });
 
             router.push(`/campaigns/${id}`);

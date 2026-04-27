@@ -71,24 +71,23 @@ export default function CreateCampaignPage() {
 
             // ВИКОРИСТОВУЄМО API (AXIOS)
             // Він автоматично візьме куку з браузера. Header Authorization НЕ ПОТРІБЕН.
-            await api.post('/campaigns', data, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            await fetch('/api/campaigns', {
+                method: 'POST',
+                body: data,
+                credentials: 'include',
             });
 
             router.push('/campaigns');
             router.refresh();
 
-        } catch (err: any) {
-            // Обробка помилок через axios interceptors
-            const errorMessage = err.response?.data?.message || err.message || 'Помилка при створенні';
+        } catch (err) {
+            let errorMessage = 'Помилка при створенні';
 
-            if (err.response?.status === 401) {
-                setError('Ви не авторизовані. Будь ласка, вийдіть і зайдіть в аккаунт знову.');
-            } else {
-                setError(errorMessage);
+            if (err instanceof Error) {
+                errorMessage = err.message;
             }
+
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }

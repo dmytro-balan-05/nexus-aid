@@ -13,10 +13,9 @@ interface User {
     provider: string;
 }
 
-// Типізація самого контексту
 interface AuthContextType {
     user: User | null;
-    login: (token: string) => void;
+    login: () => Promise<void>;
     logout: () => void;
     isLoading: boolean;
     refreshProfile: () => Promise<void>;
@@ -31,13 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const fetchUser = async () => {
         try {
-            // Робимо запит за даними профілю
-            const userData = await api.get('/users/me');
+            const userData = await api.get<User>('/users/me');
+
+            if (!userData) {
+                setUser(null);
+                return;
+            }
+
             setUser(userData);
         } catch (error) {
-            console.error('Failed to fetch user', error);
-            // Якщо токен невалідний — викидаємо юзера
-            localStorage.removeItem('jwt_token');
             setUser(null);
         } finally {
             setIsLoading(false);
@@ -45,25 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     useEffect(() => {
-        const token = localStorage.getItem('jwt_token');
-        if (token) {
-            fetchUser();
-        } else {
-            setIsLoading(false);
-        }
+        fetchUser();
     }, []);
 
-    const login = (token: string) => {
-        localStorage.setItem('jwt_token', token);
-        fetchUser();
+    const login = async () => {
+        await fetchUser();
         router.push('/profile');
     };
 
-    const logout = () => {
-        localStorage.removeItem('jwt_token');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_role');
-
+    const logout = async () => {
+        await api.post('/auth/logout', {});
         setUser(null);
         router.push('/login');
     };

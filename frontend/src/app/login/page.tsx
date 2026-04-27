@@ -16,19 +16,9 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const res = await api.post('/auth/login', { email, password });
+            await api.post('/auth/login', { email, password });
 
-            if (res.access_token) {
-                // --- ДОДАЛИ ТІЛЬКИ ЦЕ (щоб знати, хто ми) ---
-                if (res.userId) localStorage.setItem('user_id', res.userId);
-                if (res.role) localStorage.setItem('user_role', res.role);
-                window.dispatchEvent(new Event('storage')); // Оновлюємо хедер
-                // -------------------------------------------
-
-                login(res.access_token);
-            } else {
-                setError('Не отримано токен від сервера');
-            }
+            await login();
         } catch (err) {
             if (err instanceof Error) {
                 setError(err.message);

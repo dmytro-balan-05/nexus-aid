@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext'; // Використовуємо наш хук
+import { useAuth } from '@/context/AuthContext';
 
 interface Props {
     campaignId: string;
@@ -14,9 +14,8 @@ export default function EditButton({ campaignId, authorId }: Props) {
     if (isLoading) return null;
 
     const canEdit = user && (
-        user.id === authorId ||
-        user.role === 'volonteer' ||
-        user.role === 'admin'
+        user.role === 'admin' ||
+        (user.role === 'volonteer' && user.id === authorId)
     );
 
     if (!canEdit) return null;
