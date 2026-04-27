@@ -6,18 +6,20 @@ import {
   Query,
   Body,
   Param,
+  Delete,
   UseGuards,
   Request,
+  ForbiddenException,
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
 } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
-// ВАЖНО: Используем относительный путь, чтобы TypeScript не тупил и не выдавал ошибку декоратора
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+
 
 const storageConfig = diskStorage({
   destination: './uploads',
@@ -45,6 +47,8 @@ const fileFilter = (req, file, cb) => {
     cb(new BadRequestException(`Недопустимий тип файлу`), false);
   }
 };
+
+
 
 @Controller('campaigns')
 export class CampaignsController {
@@ -82,8 +86,17 @@ export class CampaignsController {
     return this.campaignsService.create(createCampaignDto, authorId);
   }
 
-  // --- ИСПРАВЛЕННЫЙ МЕТОД UPDATE ---
-  @UseGuards(JwtAuthGuard) // Guard теперь увидит файл благодаря правильному импорту
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deleteCampaign(@Param('id') id: string, @Request() req) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Only admin can delete campaigns');
+    }
+
+    return this.campaignsService.delete(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @UseInterceptors(
     FilesInterceptor('documents', 5, {
@@ -108,7 +121,6 @@ export class CampaignsController {
       documents: documentPaths.length > 0 ? documentPaths : undefined,
     };
 
-    // Мы передаем ID юзера. Если сервис его не ждет - читай Шаг 2.
     return this.campaignsService.update(id, updateCampaignDto, req.user.id);
   }
 

@@ -3,12 +3,14 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '@/lib/api'
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export default function EditCampaignPage() {
     const router = useRouter();
     const params = useParams();
     const id = params.id as string;
+    const { user } = useAuth();
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
@@ -23,10 +25,9 @@ export default function EditCampaignPage() {
         beneficiary: '',
         category: '',
         status: '',
-        imageURL: '', // Додали можливість змінити головне фото (посилання)
+        imageURL: '',
     });
 
-    // Завантаження даних
     useEffect(() => {
         const fetchCampaign = async () => {
             try {
@@ -49,7 +50,7 @@ export default function EditCampaignPage() {
                     status: data.status,
                     imageURL: (data.images && data.images.length > 0) ? data.images[0] : '',
                 });
-            } catch (err) {
+            } catch {
                 setError('Помилка завантаження даних');
             } finally {
                 setIsLoading(false);
@@ -93,10 +94,27 @@ export default function EditCampaignPage() {
             router.refresh();
 
         } catch (err: any) {
-            // Axios ховає помилку в err.response.data
-            const message = err.response?.data?.message || err.message || 'Помилка оновлення';
+            const message = err?.message || 'Помилка оновлення';
             setError(message);
             setIsLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        const confirmed = confirm('Точно видалити збір?');
+
+        if (!confirmed) return;
+
+        try {
+            await fetch(`/api/campaigns/${id}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+
+            router.push('/campaigns');
+            router.refresh();
+        } catch {
+            alert('Помилка видалення');
         }
     };
 
@@ -110,7 +128,6 @@ export default function EditCampaignPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-2xl border border-gray-200">
 
-                {/* БЛОК СТАТУСУ */}
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <label className="block text-sm font-bold mb-2">Статус</label>
                     <select name="status" className="w-full border p-2 rounded" onChange={handleChange} value={formData.status}>
@@ -120,7 +137,6 @@ export default function EditCampaignPage() {
                     </select>
                 </div>
 
-                {/* ОСНОВНІ ПОЛЯ */}
                 <div>
                     <label className="block text-sm font-medium mb-1">Назва</label>
                     <input name="title" value={formData.title} onChange={handleChange} className="w-full border p-2 rounded" />
@@ -167,14 +183,25 @@ export default function EditCampaignPage() {
                     </div>
                 </div>
 
-                {/* ДОКУМЕНТИ */}
                 <div className="border-t pt-4">
                     <label className="block text-sm font-bold mb-2">Додати нові документи / звіти</label>
                     <input type="file" multiple onChange={handleFileChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-black file:text-white cursor-pointer" />
                     <p className="text-xs text-gray-400 mt-1">Нові файли додаються до списку існуючих.</p>
                 </div>
 
-                <button type="submit" className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition">Зберегти зміни</button>
+                {user?.role === 'admin' && (
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="w-full bg-red-500 text-white py-3 rounded-lg font-bold hover:bg-red-600 transition"
+                    >
+                        🗑 Видалити збір
+                    </button>
+                )}
+
+                <button type="submit" className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition">
+                    Зберегти зміни
+                </button>
             </form>
         </div>
     );

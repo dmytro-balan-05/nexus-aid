@@ -30,6 +30,12 @@ export class CampaignsService {
     });
   }
 
+  async delete(id: string) {
+    return this.prisma.campaign.delete({
+      where: { id },
+    });
+  }
+
   async findAll(search?: string, sort?: 'asc' | 'desc', category?: string) {
     const where: any = {};
 
@@ -77,7 +83,8 @@ export class CampaignsService {
   }
 
   // --- МЕТОД UPDATE З ПРАВАМИ АДМІНА ---
-  async update(id: string, updateData: any, userId: string) { // <--- ТУТ БУВ ERROR
+  async update(id: string, updateData: any, userId: string) {
+    // <--- ТУТ БУВ ERROR
     const currentCampaign = await this.prisma.campaign.findUnique({
       where: { id },
     });
@@ -111,7 +118,9 @@ export class CampaignsService {
         title: updateData.title,
         shortDescription: updateData.shortDescription,
         fullDescription: updateData.fullDescription,
-        goalAmount: updateData.goalAmount ? Number(updateData.goalAmount) : undefined,
+        goalAmount: updateData.goalAmount
+          ? Number(updateData.goalAmount)
+          : undefined,
         location: updateData.location,
         beneficiary: updateData.beneficiary,
         category: updateData.category,
