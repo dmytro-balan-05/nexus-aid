@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static'; // Імпортуємо модуль
 import { join } from 'path'; // Для роботи зі шляхами
+import { DonationsModule } from './donations/donations.module';
+
 import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma.service';
 import { UsersModule } from './users/users.module';
@@ -14,9 +16,11 @@ import { CampaignsModule } from './campaigns/campaigns.module';
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
     }),
+    DonationsModule,
     AuthModule,
     UsersModule,
-    CampaignsModule
+
+    CampaignsModule,
   ],
   controllers: [],
   providers: [PrismaService],

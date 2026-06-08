@@ -1,12 +1,21 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 enum Role {
   user
   volonteer
   admin
+}
+
+enum DonationStatus {
+  pending
+  approved
+  declined
+  refunded
+}
+
+enum DonorLevel {
+  bronze
+  silver
+  gold
+  platinum
 }
 
 generator client {
@@ -19,42 +28,117 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String?
-  name      String?
-  avatar    String?
-  provider  String   @default("local") // 'local', 'google', 'github'
-  socialId  String?
+  id       String  @id @default(uuid())
+  email    String  @unique
+  password String?
+  name     String?
+  avatar   String?
+  provider String  @default("local")
+  socialId String?
 
   role      Role     @default(user)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   campaigns Campaign[]
+  donations Donation[]
+
+  donorProfile DonorProfile?
 
   @@unique([provider, socialId])
 }
 
 model Campaign {
-  id               String   @id @default(uuid())
+  id               String @id @default(uuid())
   title            String
   shortDescription String
   fullDescription  String
 
-  goalAmount       Int      // Сума в копійках або цілих гривнях
-  currentAmount    Int      @default(0)
+  goalAmount    Int
+  currentAmount Int @default(0)
 
-  status           String   @default("pending") // 'pending', 'active', 'closed', 'rejected'
-  category         String   // 'military', 'medical', 'humanitarian'
+  status   String @default("pending")
+  category String
 
-  location         String
-  beneficiary      String   // Для кого (напр. "3-тя ОШБр")
-  images           String[]
-  documents        String[]
+  location    String
+  beneficiary String
+  images      String[]
+  documents   String[]
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  authorId         String
-  author           User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+
+  donations Donation[]
+}
+
+model Donation {
+  id       String @id @default(uuid())
+  amount   Int
+  currency String @default("UAH")
+
+  orderReference String  @unique
+  transactionId  String?
+
+  status DonationStatus @default(pending)
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+
+  donorId String?
+  donor   User?   @relation(fields: [donorId], references: [id])
+
+  donorName  String?
+  donorEmail String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Badge {
+  id          String @id @default(uuid())
+  key         String @unique // напр. "first_donation", "drone_x5"
+  name        String
+  description String
+  icon        String // емодзі або назва іконки
+  category    String // "military", "medical", "humanitarian", "general"
+
+  // Що розблоковується при отриманні
+  unlocksFrame      String? // назва PNG рамки
+  unlocksBackground String? // hex колір або назва теми
+  unlocksFont       String? // назва шрифту
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id        String  @id @default(uuid())
+  userId    String
+  badgeId   String
+  grantedBy String? // null = автоматично, userId адміна = вручну
+
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+}
+
+model DonorProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  level         DonorLevel @default(bronze)
+  totalAmount   Int        @default(0)
+  donationCount Int        @default(0)
+
+  // Кастомізація профільної картки
+  selectedFrame      String? // назва PNG рамки
+  selectedBackground String? // hex або назва теми
+  selectedFont       String? // назва шрифту
+
+  updatedAt DateTime @updatedAt
 }

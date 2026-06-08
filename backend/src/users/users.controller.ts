@@ -23,6 +23,7 @@ export class UsersController {
   getProfile(@Request() req) {
     return this.usersService.getProfile(req.user.id);
   }
+
   @UseGuards(JwtAuthGuard)
   @Get()
   async getAll(
@@ -37,6 +38,12 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  updateProfile(@Request() req, @Body() dto: UpdateUserDto) {
+    return this.usersService.updateProfile(req.user.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/role')
   async changeRole(
     @Param('id') id: string,
@@ -48,11 +55,5 @@ export class UsersController {
     }
 
     return this.usersService.changeRole(id, body.role, req.user);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Patch('me')
-  updateProfile(@Request() req, @Body() dto: UpdateUserDto) {
-    return this.usersService.updateProfile(req.user.id, dto);
   }
 }

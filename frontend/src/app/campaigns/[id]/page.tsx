@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import EditButton from '@/components/EditButton';
+import DonateButton from '@/components/DonateButton';
 
-// Інтерфейс даних
 interface Campaign {
     id: string;
     title: string;
@@ -59,24 +59,23 @@ export default async function CampaignDetailPage({ params }: Props) {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* ЛІВА КОЛОНКА: Фото та Опис */}
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Головне фото */}
                     <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-100">
                         <img src={mainImage} alt={campaign.title} className="w-full h-auto object-cover" />
                     </div>
 
-                    {/* Інформація */}
                     <div>
                         <div className="flex flex-wrap gap-2 mb-4">
-               <span className="bg-black text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                 {campaign.category}
-               </span>
+                            <span className="bg-black text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                                {campaign.category}
+                            </span>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                                campaign.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'
+                                campaign.status === 'active'
+                                    ? 'bg-green-100 text-green-800 border-green-200'
+                                    : 'bg-gray-100 text-gray-800 border-gray-200'
                             }`}>
-                 {campaign.status}
-               </span>
+                                {campaign.status}
+                            </span>
                         </div>
 
                         <h1 className="text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{campaign.title}</h1>
@@ -91,38 +90,35 @@ export default async function CampaignDetailPage({ params }: Props) {
                         </div>
                     </div>
 
-                    {/* ДОКУМЕНТИ ТА ЗВІТИ */}
                     {campaign.documents && campaign.documents.length > 0 && (
                         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 mt-8">
                             <h3 className="font-bold text-lg mb-4">📄 Документи та звітність</h3>
                             <ul className="space-y-2">
                                 {campaign.documents.map((doc, index) => {
-                                    const baseUrl = 'http://localhost:3000';
-
                                     const cleanDocPath = doc.startsWith('/') ? doc.substring(1) : doc;
                                     const fullDocUrl = doc.startsWith('http')
                                         ? doc
-                                        : `${baseUrl}/${cleanDocPath}`;
+                                        : `http://localhost:3000/${cleanDocPath}`;
 
                                     return (
                                         <li key={index}>
-                                            <a
-                                                href={fullDocUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-600 hover:underline flex items-center gap-2"
+                                        <a
+                                            href={fullDocUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline flex items-center gap-2"
                                             >
-                                                📎 Переглянути документ {index + 1}
-                                            </a>
-                                        </li>
-                                    );
+                                            {`📎 Переглянути документ ${index + 1}`}
+
+                                        </a>
+                                </li>
+                                );
                                 })}
                             </ul>
                         </div>
                     )}
                 </div>
 
-                {/* ПРАВА КОЛОНКА: Донат та Автор */}
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-6">
                         <div className="mb-6">
@@ -136,9 +132,7 @@ export default async function CampaignDetailPage({ params }: Props) {
                             <p className="text-right text-xs text-gray-400 mt-2">зібрано від цілі</p>
                         </div>
 
-                        <button className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition shadow-lg hover:shadow-xl transform active:scale-95">
-                            Підтримати збір
-                        </button>
+                        <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
                         <EditButton campaignId={campaign.id} authorId={campaign.author.id} />
 
                         <div className="mt-8 pt-6 border-t border-gray-100">
