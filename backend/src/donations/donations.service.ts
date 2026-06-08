@@ -7,12 +7,14 @@ import { PrismaService } from '../prisma.service';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
+import { GamificationService } from '../gamification/gamification.service';
 
 @Injectable()
 export class DonationsService {
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
+    private gamification: GamificationService,
   ) {}
 
   private getSecretKey(): string {
@@ -62,7 +64,6 @@ export class DonationsService {
       },
     });
 
-    // Порядок полів суворо за документацією WayForPay
     const merchantSignature = this.generateSignature([
       merchantAccount,
       merchantDomain,
@@ -107,6 +108,7 @@ export class DonationsService {
 
     const donation = await this.prisma.donation.findUnique({
       where: { orderReference: body.orderReference },
+      include: { campaign: { select: { category: true } } },
     });
 
     if (!donation) return { status: 'error', message: 'Donation not found' };
@@ -127,6 +129,13 @@ export class DonationsService {
           },
         }),
       ]);
+
+      if (donation.donorId) {
+        await this.gamification.processAfterDonation(
+          donation.donorId,
+          donation.campaign.category,
+        );
+      }
     } else if (['Declined', 'Expired'].includes(body.transactionStatus)) {
       await this.prisma.donation.update({
         where: { orderReference: body.orderReference },

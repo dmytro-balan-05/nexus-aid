@@ -40,10 +40,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campaigns Campaign[]
-  donations Donation[]
-
+  campaigns    Campaign[]
+  donations    Donation[]
   donorProfile DonorProfile?
+  userBadges   UserBadge[]
 
   @@unique([provider, socialId])
 }
@@ -64,6 +64,9 @@ model Campaign {
   beneficiary String
   images      String[]
   documents   String[]
+
+  isUrgent    Boolean   @default(false)
+  urgentUntil DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -98,16 +101,15 @@ model Donation {
 
 model Badge {
   id          String @id @default(uuid())
-  key         String @unique // напр. "first_donation", "drone_x5"
+  key         String @unique
   name        String
   description String
-  icon        String // емодзі або назва іконки
-  category    String // "military", "medical", "humanitarian", "general"
+  icon        String
+  category    String
 
-  // Що розблоковується при отриманні
-  unlocksFrame      String? // назва PNG рамки
-  unlocksBackground String? // hex колір або назва теми
-  unlocksFont       String? // назва шрифту
+  unlocksFrame      String?
+  unlocksBackground String?
+  unlocksFont       String?
 
   userBadges UserBadge[]
 }
@@ -116,7 +118,7 @@ model UserBadge {
   id        String  @id @default(uuid())
   userId    String
   badgeId   String
-  grantedBy String? // null = автоматично, userId адміна = вручну
+  grantedBy String?
 
   createdAt DateTime @default(now())
 
@@ -135,10 +137,10 @@ model DonorProfile {
   totalAmount   Int        @default(0)
   donationCount Int        @default(0)
 
-  // Кастомізація профільної картки
-  selectedFrame      String? // назва PNG рамки
-  selectedBackground String? // hex або назва теми
-  selectedFont       String? // назва шрифту
+  selectedFrame      String?
+  selectedBackground String?
+  selectedFont       String?
+  quote              String?
 
   updatedAt DateTime @updatedAt
 }

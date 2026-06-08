@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static'; // Імпортуємо модуль
 import { join } from 'path'; // Для роботи зі шляхами
 import { DonationsModule } from './donations/donations.module';
+import { GamificationModule } from './gamification/gamification.module';
+
 
 import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma.service';
@@ -19,7 +21,7 @@ import { CampaignsModule } from './campaigns/campaigns.module';
     DonationsModule,
     AuthModule,
     UsersModule,
-
+    GamificationModule,
     CampaignsModule,
   ],
   controllers: [],
