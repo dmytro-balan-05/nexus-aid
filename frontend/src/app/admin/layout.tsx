@@ -7,8 +7,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
 
     const tabs = [
-        { href: '/admin/users',  label: '👥 Користувачі' },
-        { href: '/admin/badges', label: '🏅 Досягнення' },
+        { href: '/admin/users',        label: '👥 Користувачі' },
+        { href: '/admin/badges',       label: '🏅 Досягнення' },
+        { href: '/admin/verification', label: '🔐 Заявки' },
+        { href: '/admin/chats', label: '💬 Чати' },
     ];
 
     return (

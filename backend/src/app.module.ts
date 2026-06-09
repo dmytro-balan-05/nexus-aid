@@ -9,6 +9,10 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaService } from './prisma.service';
 import { UsersModule } from './users/users.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
+import { VerificationModule } from './verification/verification.module';
+import { ChatModule } from './chat/chat.module';
+
+
 
 @Module({
   imports: [
@@ -23,6 +27,8 @@ import { CampaignsModule } from './campaigns/campaigns.module';
     UsersModule,
     GamificationModule,
     CampaignsModule,
+    VerificationModule,
+    ChatModule,
   ],
   controllers: [],
   providers: [PrismaService],
