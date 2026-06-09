@@ -5,7 +5,7 @@
     "tags": [],
     "title": "Auth",
     "description": "Make auth including crypting",
-    "status": "TODO",
+    "status": "DONE",
     "date": {
       "date": {
         "year": 2026,
@@ -17,6 +17,116 @@
         "minute": 37,
         "second": 45,
         "nano": 755555600
+      }
+    },
+    "isImported": false
+  },
+  {
+    "id": "TASK_4",
+    "priority": "LOW",
+    "tags": [],
+    "title": "Campaigns core",
+    "description": "",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 1,
+        "day": 21
+      },
+      "time": {
+        "hour": 2,
+        "minute": 50,
+        "second": 23,
+        "nano": 899262600
+      }
+    },
+    "isImported": false
+  },
+  {
+    "id": "TASK_7",
+    "priority": "LOW",
+    "tags": [],
+    "title": "Volonteer flow",
+    "description": "",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 1,
+        "day": 21
+      },
+      "time": {
+        "hour": 2,
+        "minute": 50,
+        "second": 33,
+        "nano": 369711400
+      }
+    },
+    "isImported": false
+  },
+  {
+    "id": "TASK_11",
+    "priority": "LOW",
+    "tags": [],
+    "title": "Frontend",
+    "description": "",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 1,
+        "day": 21
+      },
+      "time": {
+        "hour": 2,
+        "minute": 50,
+        "second": 38,
+        "nano": 331989500
+      }
+    },
+    "isImported": false
+  },
+  {
+    "id": "TASK_16",
+    "priority": "LOW",
+    "tags": [],
+    "title": "Admin / roles logic",
+    "description": "",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 1,
+        "day": 21
+      },
+      "time": {
+        "hour": 2,
+        "minute": 50,
+        "second": 49,
+        "nano": 846343900
+      }
+    },
+    "isImported": false
+  },
+  {
+    "id": "TASK_22",
+    "priority": "LOW",
+    "tags": [],
+    "title": "Final compeling",
+    "description": "",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 1,
+        "day": 21
+      },
+      "time": {
+        "hour": 2,
+        "minute": 51,
+        "second": 0,
+        "nano": 401852800
       }
     },
     "isImported": false

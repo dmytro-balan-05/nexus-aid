@@ -1,8 +1,22 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+enum Role {
+  user
+  volonteer
+  admin
+}
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+enum DonationStatus {
+  pending
+  approved
+  declined
+  refunded
+}
+
+enum DonorLevel {
+  bronze
+  silver
+  gold
+  platinum
+}
 
 generator client {
   provider = "prisma-client-js"
@@ -14,15 +28,119 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String?
-  name      String?
-  avatar    String?
-  provider  String   @default("local")
-  socialId  String?
+  id       String  @id @default(uuid())
+  email    String  @unique
+  password String?
+  name     String?
+  avatar   String?
+  provider String  @default("local")
+  socialId String?
 
-  role      String   @default("user")
+  role      Role     @default(user)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaigns    Campaign[]
+  donations    Donation[]
+  donorProfile DonorProfile?
+  userBadges   UserBadge[]
+
+  @@unique([provider, socialId])
+}
+
+model Campaign {
+  id               String @id @default(uuid())
+  title            String
+  shortDescription String
+  fullDescription  String
+
+  goalAmount    Int
+  currentAmount Int @default(0)
+
+  status   String @default("pending")
+  category String
+
+  location    String
+  beneficiary String
+  images      String[]
+  documents   String[]
+
+  isUrgent    Boolean   @default(false)
+  urgentUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+
+  donations Donation[]
+}
+
+model Donation {
+  id       String @id @default(uuid())
+  amount   Int
+  currency String @default("UAH")
+
+  orderReference String  @unique
+  transactionId  String?
+
+  status DonationStatus @default(pending)
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+
+  donorId String?
+  donor   User?   @relation(fields: [donorId], references: [id])
+
+  donorName  String?
+  donorEmail String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Badge {
+  id          String @id @default(uuid())
+  key         String @unique
+  name        String
+  description String
+  icon        String
+  category    String
+
+  unlocksFrame      String?
+  unlocksBackground String?
+  unlocksFont       String?
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id        String  @id @default(uuid())
+  userId    String
+  badgeId   String
+  grantedBy String?
+
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+}
+
+model DonorProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  level         DonorLevel @default(bronze)
+  totalAmount   Int        @default(0)
+  donationCount Int        @default(0)
+
+  selectedFrame      String?
+  selectedBackground String?
+  selectedFont       String?
+  quote              String?
+
   updatedAt DateTime @updatedAt
 }

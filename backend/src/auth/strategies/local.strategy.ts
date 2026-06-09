@@ -10,7 +10,10 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(email: string, pass: string): Promise<any> {
-    // Тут пока заглушка, логику вернем позже
-    return null;
+    const user = await this.authService.validateUser(email, pass);
+    if (!user) {
+      throw new UnauthorizedException('Невірний email або пароль');
+    }
+    return user;
   }
 }
