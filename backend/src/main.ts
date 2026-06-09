@@ -28,10 +28,13 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const gamification = app.get(GamificationService);
-  await gamification.seedBadges();
+  try {
+    const gamification = app.get(GamificationService);
+    await gamification.seedBadges();
+  } catch (e) {
+    console.error('seedBadges failed:', e);
+  }
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();
-
