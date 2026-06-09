@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors({
-    origin: 'http://localhost:3001',
+    origin: true,
     credentials: true,
   });
 
@@ -31,6 +31,6 @@ async function bootstrap() {
   const gamification = app.get(GamificationService);
   await gamification.seedBadges();
 
-  await app.listen(3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();
