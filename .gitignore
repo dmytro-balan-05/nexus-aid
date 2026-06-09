@@ -5,6 +5,7 @@ build/
 coverage/
 .DS_Store
 *.log
+uploads/
 
 # === БЕЗПЕКА  ===
 .env
