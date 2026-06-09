@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nexusaid
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/nexusaid
+      JWT_SECRET: ${JWT_SECRET}
+      WFP_MERCHANT_ACCOUNT: ${WFP_MERCHANT_ACCOUNT}
+      WFP_SECRET_KEY: ${WFP_SECRET_KEY}
+      WFP_MERCHANT_DOMAIN: ${WFP_MERCHANT_DOMAIN}
+      WFP_RETURN_URL: ${WFP_RETURN_URL}
+      WFP_SERVICE_URL: ${WFP_SERVICE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3001:3001"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:3000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
