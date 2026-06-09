@@ -15,11 +15,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
+import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-
 
 const storageConfig = diskStorage({
   destination: './uploads',
@@ -44,11 +44,9 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new BadRequestException(`Недопустимий тип файлу`), false);
+    cb(new BadRequestException('Недопустимий тип файлу'), false);
   }
 };
-
-
 
 @Controller('campaigns')
 export class CampaignsController {
@@ -59,7 +57,7 @@ export class CampaignsController {
   @UseInterceptors(
     FilesInterceptor('documents', 5, {
       storage: storageConfig,
-      fileFilter: fileFilter,
+      fileFilter,
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
@@ -71,7 +69,8 @@ export class CampaignsController {
     const documentPaths = files
       ? files.map((f) => `/uploads/${f.filename}`)
       : [];
-    const createCampaignDto = {
+
+    const createCampaignDto: CreateCampaignDto = {
       title: body.title,
       shortDescription: body.shortDescription,
       fullDescription: body.fullDescription,
@@ -81,18 +80,23 @@ export class CampaignsController {
       category: body.category,
       images: body.image ? [body.image] : [],
       documents: documentPaths,
+      isUrgent: body.isUrgent === 'true' || body.isUrgent === true,
+      urgentUntil: body.urgentUntil ? String(body.urgentUntil) : undefined,
     };
+
     const authorId = req.user.userId || req.user.id || req.user.sub;
     return this.campaignsService.create(createCampaignDto, authorId);
   }
 
+  @Get('random')
+  getRandom(@Query('category') category?: string) {
+    return this.campaignsService.getRandomByCategory(category);
+  }
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteCampaign(@Param('id') id: string, @Request() req) {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin')
       throw new ForbiddenException('Only admin can delete campaigns');
-    }
-
     return this.campaignsService.delete(id);
   }
 
@@ -101,7 +105,7 @@ export class CampaignsController {
   @UseInterceptors(
     FilesInterceptor('documents', 5, {
       storage: storageConfig,
-      fileFilter: fileFilter,
+      fileFilter,
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
@@ -114,14 +118,17 @@ export class CampaignsController {
     const documentPaths = files
       ? files.map((f) => `/uploads/${f.filename}`)
       : [];
-
     const updateCampaignDto = {
       ...body,
       images: body.image ? [body.image] : undefined,
       documents: documentPaths.length > 0 ? documentPaths : undefined,
     };
-
     return this.campaignsService.update(id, updateCampaignDto, req.user.id);
+  }
+
+  @Get('urgent')
+  getUrgent() {
+    return this.campaignsService.getUrgentByCategory();
   }
 
   @Get()

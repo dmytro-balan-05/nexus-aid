@@ -3,7 +3,6 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 export default function EditCampaignPage() {
@@ -26,16 +25,14 @@ export default function EditCampaignPage() {
         category: '',
         status: '',
         imageURL: '',
+        isUrgent: false,
+        urgentUntil: '',
     });
 
     useEffect(() => {
         const fetchCampaign = async () => {
             try {
-                const token = localStorage.getItem('jwt_token');
-                const res = await fetch(`http://localhost:3000/campaigns/${id}`, {
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-                });
-
+                const res = await fetch(`/api/campaigns/${id}`);
                 if (!res.ok) throw new Error('Збір не знайдено');
                 const data = await res.json();
 
@@ -48,7 +45,11 @@ export default function EditCampaignPage() {
                     beneficiary: data.beneficiary,
                     category: data.category,
                     status: data.status,
-                    imageURL: (data.images && data.images.length > 0) ? data.images[0] : '',
+                    imageURL: data.images?.[0] || '',
+                    isUrgent: data.isUrgent || false,
+                    urgentUntil: data.urgentUntil
+                        ? new Date(data.urgentUntil).toISOString().split('T')[0]
+                        : '',
                 });
             } catch {
                 setError('Помилка завантаження даних');
@@ -60,8 +61,11 @@ export default function EditCampaignPage() {
     }, [id]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+        }));
     };
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -74,14 +78,19 @@ export default function EditCampaignPage() {
 
         try {
             const data = new FormData();
-            Object.entries(formData).forEach(([key, value]) => {
-                data.append(key, String(value));
-            });
-
-            if (formData.imageURL) {
-                data.append('image', formData.imageURL);
+            data.append('title', formData.title);
+            data.append('shortDescription', formData.shortDescription);
+            data.append('fullDescription', formData.fullDescription);
+            data.append('goalAmount', String(formData.goalAmount));
+            data.append('location', formData.location);
+            data.append('beneficiary', formData.beneficiary);
+            data.append('category', formData.category);
+            data.append('status', formData.status);
+            data.append('isUrgent', String(formData.isUrgent));
+            if (formData.isUrgent && formData.urgentUntil) {
+                data.append('urgentUntil', formData.urgentUntil);
             }
-
+            if (formData.imageURL) data.append('image', formData.imageURL);
             docFiles.forEach((file) => data.append('documents', file));
 
             await fetch(`/api/campaigns/${id}`, {
@@ -92,25 +101,19 @@ export default function EditCampaignPage() {
 
             router.push(`/campaigns/${id}`);
             router.refresh();
-
         } catch (err: any) {
-            const message = err?.message || 'Помилка оновлення';
-            setError(message);
+            setError(err?.message || 'Помилка оновлення');
             setIsLoading(false);
         }
     };
 
     const handleDelete = async () => {
-        const confirmed = confirm('Точно видалити збір?');
-
-        if (!confirmed) return;
-
+        if (!confirm('Точно видалити збір?')) return;
         try {
             await fetch(`/api/campaigns/${id}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
-
             router.push('/campaigns');
             router.refresh();
         } catch {
@@ -127,7 +130,6 @@ export default function EditCampaignPage() {
             {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-2xl border border-gray-200">
-
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <label className="block text-sm font-bold mb-2">Статус</label>
                     <select name="status" className="w-full border p-2 rounded" onChange={handleChange} value={formData.status}>
@@ -183,9 +185,43 @@ export default function EditCampaignPage() {
                     </div>
                 </div>
 
+                <div className="border border-orange-200 bg-orange-50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            id="isUrgent"
+                            name="isUrgent"
+                            checked={formData.isUrgent}
+                            onChange={handleChange}
+                            className="w-4 h-4 accent-orange-500"
+                        />
+                        <label htmlFor="isUrgent" className="text-sm font-bold text-orange-800 cursor-pointer">
+                            🔥 Терміновий збір
+                        </label>
+                    </div>
+                    {formData.isUrgent && (
+                        <div>
+                            <label className="block text-sm font-medium mb-1 text-orange-700">Термін до</label>
+                            <input
+                                type="date"
+                                name="urgentUntil"
+                                value={formData.urgentUntil}
+                                onChange={handleChange}
+                                min={new Date().toISOString().split('T')[0]}
+                                className="w-full border border-orange-300 p-2 rounded focus:ring-2 focus:ring-orange-400 outline-none"
+                            />
+                        </div>
+                    )}
+                </div>
+
                 <div className="border-t pt-4">
                     <label className="block text-sm font-bold mb-2">Додати нові документи / звіти</label>
-                    <input type="file" multiple onChange={handleFileChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-black file:text-white cursor-pointer" />
+                    <input
+                        type="file"
+                        multiple
+                        onChange={handleFileChange}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-black file:text-white cursor-pointer"
+                    />
                     <p className="text-xs text-gray-400 mt-1">Нові файли додаються до списку існуючих.</p>
                 </div>
 

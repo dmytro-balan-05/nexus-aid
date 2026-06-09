@@ -1,4 +1,12 @@
-import { IsString, IsInt, IsOptional, Min, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  IsOptional,
+  IsBoolean,
+  Min,
+  IsArray,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateCampaignDto {
   @IsString()
@@ -25,11 +33,19 @@ export class CreateCampaignDto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true }) // Кожен елемент масиву має бути рядком
+  @IsString({ each: true })
   images?: string[];
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   documents?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  isUrgent?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  urgentUntil?: string;
 }
