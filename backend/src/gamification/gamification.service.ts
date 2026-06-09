@@ -150,6 +150,12 @@ const BADGES = [
 export class GamificationService {
   constructor(private prisma: PrismaService) {}
 
+  private leaderboardCache: { data: any; expiresAt: number } | null = null;
+
+  invalidateLeaderboardCache() {
+    this.leaderboardCache = null;
+  }
+
   async seedBadges() {
     for (const badge of BADGES) {
       await this.prisma.badge.upsert({
@@ -221,6 +227,8 @@ export class GamificationService {
     for (const key of badgesToCheck) {
       await this.grantBadgeSystem(userId, key);
     }
+
+    this.invalidateLeaderboardCache();
   }
 
   async grantBadgeManually(
@@ -326,6 +334,7 @@ export class GamificationService {
   async deleteBadge(key: string) {
     return this.prisma.badge.delete({ where: { key } });
   }
+
   async revokeBadge(userId: string, badgeKey: string) {
     const badge = await this.prisma.badge.findUnique({
       where: { key: badgeKey },
@@ -336,14 +345,36 @@ export class GamificationService {
       where: { userId_badgeId: { userId, badgeId: badge.id } },
     });
   }
+
   async getLeaderboard() {
-    return this.prisma.donorProfile.findMany({
+    const now = Date.now();
+
+    if (this.leaderboardCache && this.leaderboardCache.expiresAt > now) {
+      return this.leaderboardCache.data;
+    }
+
+    const profiles = await this.prisma.donorProfile.findMany({
       orderBy: { totalAmount: 'desc' },
       take: 20,
       include: {
         user: { select: { id: true, name: true, avatar: true } },
       },
     });
+
+    const withBadges = await Promise.all(
+      profiles.map(async (p) => {
+        const badgeCount = await this.prisma.userBadge.count({
+          where: { userId: p.userId },
+        });
+        return { ...p, badgeCount };
+      }),
+    );
+
+    this.leaderboardCache = {
+      data: withBadges,
+      expiresAt: now + 5 * 60 * 1000,
+    };
+    return withBadges;
   }
 
   async getAllBadges() {

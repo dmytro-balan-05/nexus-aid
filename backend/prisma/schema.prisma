@@ -36,9 +36,13 @@ model User {
   provider String  @default("local")
   socialId String?
 
-  role      Role     @default(user)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  verificationRequest  VerificationRequest?
+  verificationMessages VerificationMessage[]
+  chat                 Chat?
+  chatMessages         ChatMessage[]
+  role                 Role                  @default(user)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   campaigns    Campaign[]
   donations    Donation[]
@@ -74,6 +78,43 @@ model Campaign {
   author    User     @relation(fields: [authorId], references: [id])
 
   donations Donation[]
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+model VerificationRequest {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  about       String
+  experience  String
+  socialLinks String?
+  documents   String[]
+
+  status VerificationStatus @default(pending)
+
+  messages VerificationMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationMessage {
+  id        String              @id @default(uuid())
+  requestId String
+  request   VerificationRequest @relation(fields: [requestId], references: [id])
+
+  senderId String
+  sender   User    @relation(fields: [senderId], references: [id])
+  text     String
+  isAdmin  Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 model Donation {
@@ -143,4 +184,23 @@ model DonorProfile {
   quote              String?
 
   updatedAt DateTime @updatedAt
+}
+model Chat {
+  id        String        @id @default(uuid())
+  userId    String        @unique
+  user      User          @relation(fields: [userId], references: [id])
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  text      String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

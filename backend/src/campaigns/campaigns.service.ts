@@ -20,20 +20,20 @@ export class CampaignsService {
         location: createCampaignDto.location,
         beneficiary: createCampaignDto.beneficiary,
         category: createCampaignDto.category,
-
         images: createCampaignDto.images,
         documents: createCampaignDto.documents,
-
+        isUrgent: createCampaignDto.isUrgent || false,
+        urgentUntil: createCampaignDto.urgentUntil
+          ? new Date(createCampaignDto.urgentUntil + 'T23:59:59.000Z')
+          : null,
         status: 'active',
-        authorId: authorId,
+        authorId,
       },
     });
   }
 
   async delete(id: string) {
-    return this.prisma.campaign.delete({
-      where: { id },
-    });
+    return this.prisma.campaign.delete({ where: { id } });
   }
 
   async findAll(search?: string, sort?: 'asc' | 'desc', category?: string) {
@@ -52,16 +52,9 @@ export class CampaignsService {
 
     return this.prisma.campaign.findMany({
       where,
-      orderBy: {
-        createdAt: sort === 'asc' ? 'asc' : 'desc',
-      },
+      orderBy: { createdAt: sort === 'asc' ? 'asc' : 'desc' },
       include: {
-        author: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
+        author: { select: { name: true, email: true } },
       },
     });
   }
@@ -70,43 +63,74 @@ export class CampaignsService {
     return this.prisma.campaign.findUnique({
       where: { id },
       include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatar: true,
-          },
-        },
+        author: { select: { id: true, name: true, email: true, avatar: true } },
       },
     });
   }
 
-  // --- МЕТОД UPDATE З ПРАВАМИ АДМІНА ---
+  async getUrgentByCategory() {
+    const categories = ['military', 'medical', 'humanitarian', 'general'];
+    const now = new Date();
+
+    const results = await Promise.all(
+      categories.map(async (cat) => {
+        const campaign = await this.prisma.campaign.findFirst({
+          where: {
+            category: cat,
+            status: 'active',
+            isUrgent: true,
+            urgentUntil: { gte: now },
+          },
+          orderBy: [{ urgentUntil: 'asc' }, { createdAt: 'asc' }],
+          include: {
+            author: { select: { id: true, name: true, avatar: true } },
+          },
+        });
+        return { category: cat, campaign };
+      }),
+    );
+
+    return results.filter((r) => r.campaign !== null);
+  }
+
+  async getRandomByCategory(category?: string) {
+    const where: any = { status: 'active' };
+    if (category) where.category = category;
+
+    const count = await this.prisma.campaign.count({ where });
+    if (count === 0) return null;
+
+    const skip = Math.floor(Math.random() * count);
+    const campaigns = await this.prisma.campaign.findMany({
+      where,
+      skip,
+      take: 1,
+      include: {
+        author: { select: { id: true, name: true, avatar: true } },
+      },
+    });
+
+    return campaigns[0] || null;
+  }
+
   async update(id: string, updateData: any, userId: string) {
-    // <--- ТУТ БУВ ERROR
     const currentCampaign = await this.prisma.campaign.findUnique({
       where: { id },
     });
 
-    if (!currentCampaign) {
-      throw new NotFoundException('Збір не знайдено');
-    }
+    if (!currentCampaign) throw new NotFoundException('Збір не знайдено');
 
-    // 1. Якщо ти не автор...
     if (currentCampaign.authorId !== userId) {
-      // 2. ...перевіряємо, чи ти Адмін (Enum має бути великими, якщо в базі так)
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-
-      // Якщо ролі в базі 'ADMIN' - то ок, інакше - помилка
       if (!user || user.role !== 'admin') {
         throw new ForbiddenException('Ви не маєте права редагувати цей збір');
       }
     }
 
-    const newImages = updateData.images
-      ? [...currentCampaign.images, ...updateData.images]
-      : currentCampaign.images;
+    const newImages =
+      updateData.images && updateData.images.length > 0
+        ? [...updateData.images, ...currentCampaign.images.slice(1)]
+        : currentCampaign.images;
 
     const newDocuments = updateData.documents
       ? [...currentCampaign.documents, ...updateData.documents]
@@ -125,13 +149,20 @@ export class CampaignsService {
         beneficiary: updateData.beneficiary,
         category: updateData.category,
         status: updateData.status,
+        isUrgent:
+          updateData.isUrgent !== undefined
+            ? updateData.isUrgent === 'true' || updateData.isUrgent === true
+            : undefined,
+        urgentUntil: updateData.urgentUntil
+          ? new Date(
+              updateData.urgentUntil.includes('T')
+                ? updateData.urgentUntil
+                : updateData.urgentUntil + 'T23:59:59.000Z',
+            )
+          : undefined,
         images: newImages,
         documents: newDocuments,
       },
     });
-  }
-
-  remove(id: string) {
-    return `This action removes a #${id} campaign`;
   }
 }
