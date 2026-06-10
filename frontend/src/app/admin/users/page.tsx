@@ -8,22 +8,12 @@ interface User {
     name: string;
     email: string;
     role: 'user' | 'volonteer' | 'admin';
-    _newRole?: 'user' | 'volonteer';
     avatar?: string;
-}
-
-interface Badge {
-    id: string;
-    key: string;
-    name: string;
-    icon: string;
-    category: string;
 }
 
 export default function AdminUsersPage() {
     const router = useRouter();
     const [users, setUsers] = useState<User[]>([]);
-    const [badges, setBadges] = useState<Badge[]>([]);
     const [q, setQ] = useState('');
     const [role, setRole] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -41,15 +31,7 @@ export default function AdminUsersPage() {
         }
     };
 
-    const fetchBadges = async () => {
-        const res = await fetch('/api/gamification/badges');
-        setBadges(await res.json());
-    };
-
-    useEffect(() => {
-        fetchUsers();
-        fetchBadges();
-    }, []);
+    useEffect(() => { fetchUsers(); }, []);
 
     return (
         <div className="pb-10">
@@ -58,16 +40,20 @@ export default function AdminUsersPage() {
                     placeholder="Пошук..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    className="border p-2 rounded w-full"
+                    className="border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] p-2 rounded-xl w-full outline-none focus:ring-2 focus:ring-black"
                 />
-                <select value={role} onChange={(e) => setRole(e.target.value)} className="border p-2 rounded">
+                <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] p-2 rounded-xl outline-none"
+                >
                     <option value="">Всі</option>
                     <option value="user">User</option>
                     <option value="volonteer">Volonteer</option>
                     <option value="admin">Admin</option>
                 </select>
-                <button type="submit" disabled={isSearching} className="bg-black text-white px-4 rounded disabled:opacity-50">
-                    {isSearching ? 'Пошук...' : 'Пошук'}
+                <button type="submit" disabled={isSearching} className="bg-black text-white px-4 rounded-xl disabled:opacity-50">
+                    {isSearching ? '...' : 'Пошук'}
                 </button>
             </form>
 
@@ -76,25 +62,25 @@ export default function AdminUsersPage() {
                     <div
                         key={u.id}
                         onClick={() => router.push(`/admin/users/${u.id}`)}
-                        className="border p-3 rounded flex justify-between items-center cursor-pointer hover:bg-gray-50 transition"
+                        className="border border-[var(--border)] bg-[var(--bg-card)] p-3 rounded-xl flex justify-between items-center cursor-pointer hover:border-gray-400 transition"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                            <div className="w-10 h-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center overflow-hidden">
                                 {u.avatar ? (
-                                    <img src={u.avatar} className="w-full h-full object-cover" />
+                                    <img src={u.avatar} className="w-full h-full object-cover" alt={u.name} />
                                 ) : (
-                                    <span className="text-sm font-bold text-gray-700">
+                                    <span className="text-sm font-bold text-[var(--text-secondary)]">
                                         {(u.name?.[0] || 'U').toUpperCase()}
                                     </span>
                                 )}
                             </div>
                             <div>
-                                <div className="font-bold">{u.name || 'No name'}</div>
-                                <div className="text-sm text-gray-500">{u.email}</div>
-                                <div className="text-xs text-gray-400">{u.role}</div>
+                                <div className="font-bold text-[var(--text-primary)]">{u.name || 'No name'}</div>
+                                <div className="text-sm text-[var(--text-secondary)]">{u.email}</div>
+                                <div className="text-xs text-[var(--text-secondary)]">{u.role}</div>
                             </div>
                         </div>
-                        <span className="text-gray-400 text-sm">→</span>
+                        <span className="text-[var(--text-secondary)] text-sm">→</span>
                     </div>
                 ))}
             </div>

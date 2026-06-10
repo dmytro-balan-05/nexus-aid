@@ -95,16 +95,9 @@ const FRAME_CONFIG: Record<string, { label: string; color: string; borderStyle?:
 };
 
 const RANDOM_QUOTES = [
-    'Разом до перемоги 🇺🇦',
-    'Кожна гривня рятує життя',
-    'Підтримую своїх — завжди',
-    'Україна понад усе',
-    'Донатю, бо це важливо',
-    'Ми не мовчимо — ми діємо',
-    'Сила в єдності',
-    'Наші захисники потребують нас',
-    'Небо буде нашим',
-    'Перемога буде за нами',
+    'Разом до перемоги 🇺🇦', 'Кожна гривня рятує життя', 'Підтримую своїх — завжди',
+    'Україна понад усе', 'Донатю, бо це важливо', 'Ми не мовчимо — ми діємо',
+    'Сила в єдності', 'Наші захисники потребують нас', 'Небо буде нашим', 'Перемога буде за нами',
 ];
 
 export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
@@ -144,8 +137,8 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
 
     if (badges.length === 0) {
         return (
-            <div className="bg-gray-50 rounded-xl p-4 text-center border border-dashed border-gray-300">
-                <p className="text-gray-400 text-sm">Зроби перший донат щоб розблокувати кастомізацію</p>
+            <div className="bg-[var(--bg-secondary)] rounded-xl p-4 text-center border border-dashed border-[var(--border)]">
+                <p className="text-[var(--text-secondary)] text-sm">Зроби перший донат щоб розблокувати кастомізацію</p>
             </div>
         );
     }
@@ -153,29 +146,23 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between h-5">
-                <p className="text-xs text-gray-400">Зміни зберігаються автоматично</p>
-                {status === 'saving' && <p className="text-xs text-gray-400 animate-pulse">Збереження...</p>}
-                {status === 'saved'  && <p className="text-xs text-green-600 font-bold">✓ Збережено</p>}
+                <p className="text-xs text-[var(--text-secondary)]">Зміни зберігаються автоматично</p>
+                {status === 'saving' && <p className="text-xs text-[var(--text-secondary)] animate-pulse">Збереження...</p>}
+                {status === 'saved'  && <p className="text-xs text-green-500 font-bold">✓ Збережено</p>}
             </div>
 
             {unlockedBackgrounds.length > 0 && (
                 <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2">Фон картки</p>
+                    <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Фон картки</p>
                     <div className="flex gap-2 flex-wrap items-center">
                         {unlockedBackgrounds.map((bg) => (
-                            <button
-                                key={bg}
-                                onClick={() => setSelected((p) => ({ ...p, selectedBackground: bg }))}
-                                title={bg}
-                                className={`w-9 h-9 rounded-full border-2 transition hover:scale-110 ${selected.selectedBackground === bg ? 'border-black scale-110 shadow-md' : 'border-gray-200'}`}
-                                style={{
-                                    background: bg.startsWith('#') ? bg : bg.startsWith('linear') ? bg : undefined,
-                                    backgroundColor: !bg.startsWith('linear') && !bg.startsWith('http') ? bg : undefined,
-                                }}
+                            <button key={bg} onClick={() => setSelected((p) => ({ ...p, selectedBackground: bg }))} title={bg}
+                                    className={`w-9 h-9 rounded-full border-2 transition hover:scale-110 ${selected.selectedBackground === bg ? 'border-black scale-110 shadow-md' : 'border-[var(--border)]'}`}
+                                    style={{ background: bg.startsWith('#') ? bg : bg.startsWith('linear') ? bg : undefined, backgroundColor: !bg.startsWith('linear') && !bg.startsWith('http') ? bg : undefined }}
                             />
                         ))}
                         {selected.selectedBackground && (
-                            <button onClick={() => setSelected((p) => ({ ...p, selectedBackground: '' }))} className="w-9 h-9 rounded-full border-2 border-dashed border-gray-300 text-gray-400 text-xs hover:border-red-400 hover:text-red-400 transition" title="Скинути">✕</button>
+                            <button onClick={() => setSelected((p) => ({ ...p, selectedBackground: '' }))} className="w-9 h-9 rounded-full border-2 border-dashed border-[var(--border)] text-[var(--text-secondary)] text-xs hover:border-red-400 hover:text-red-400 transition" title="Скинути">✕</button>
                         )}
                     </div>
                 </div>
@@ -183,33 +170,26 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
 
             {unlockedFrames.length > 0 && (
                 <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2">Рамка аватара</p>
+                    <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Рамка аватара</p>
                     <div className="grid grid-cols-4 gap-2">
                         {unlockedFrames.map((frame) => {
                             const cfg = FRAME_CONFIG[frame] || { label: frame, color: '#9ca3af' };
                             const isSelected = selected.selectedFrame === frame;
                             return (
-                                <button
-                                    key={frame}
-                                    onClick={() => setSelected((p) => ({ ...p, selectedFrame: frame }))}
-                                    className={`p-2 rounded-lg border text-center transition ${isSelected ? 'border-black bg-gray-900' : 'border-gray-200 hover:border-gray-400 bg-white'}`}
+                                <button key={frame} onClick={() => setSelected((p) => ({ ...p, selectedFrame: frame }))}
+                                        className={`p-2 rounded-lg border text-center transition ${isSelected ? 'border-black bg-gray-900' : 'border-[var(--border)] hover:border-[var(--text-secondary)] bg-[var(--bg-secondary)]'}`}
                                 >
                                     <div className="flex items-center justify-center mb-1">
-                                        <div
-                                            className="w-7 h-7 rounded-full bg-gray-300"
-                                            style={{
-                                                border: `3px ${cfg.borderStyle || 'solid'} ${cfg.color}`,
-                                                borderRadius: cfg.borderRadius || '50%',
-                                                boxShadow: isSelected ? `0 0 8px ${cfg.color}` : 'none',
-                                            }}
+                                        <div className="w-7 h-7 bg-[var(--bg-card)]"
+                                             style={{ border: `3px ${cfg.borderStyle || 'solid'} ${cfg.color}`, borderRadius: cfg.borderRadius || '50%', boxShadow: isSelected ? `0 0 8px ${cfg.color}` : 'none' }}
                                         />
                                     </div>
-                                    <span className={`text-xs ${isSelected ? 'text-white' : 'text-gray-600'}`}>{cfg.label}</span>
+                                    <span className={`text-xs ${isSelected ? 'text-white' : 'text-[var(--text-secondary)]'}`}>{cfg.label}</span>
                                 </button>
                             );
                         })}
                         {selected.selectedFrame && (
-                            <button onClick={() => setSelected((p) => ({ ...p, selectedFrame: '' }))} className="p-2 rounded-lg border border-dashed border-gray-300 text-gray-400 text-xs hover:border-red-400 hover:text-red-400 transition text-center">
+                            <button onClick={() => setSelected((p) => ({ ...p, selectedFrame: '' }))} className="p-2 rounded-lg border border-dashed border-[var(--border)] text-[var(--text-secondary)] text-xs hover:border-red-400 hover:text-red-400 transition text-center">
                                 <span className="text-lg block">✕</span>
                                 <span>Скинути</span>
                             </button>
@@ -220,15 +200,17 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
 
             {unlockedFonts.length > 0 && (
                 <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2">Шрифт</p>
+                    <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Шрифт</p>
                     <div className="flex flex-col gap-2">
                         {unlockedFonts.map((font) => {
                             const fontCfg = FONT_CONFIG[font] || { label: font, preview: font, style: {} };
                             const isSelected = selected.selectedFont === font;
                             return (
-                                <button key={font} onClick={() => setSelected((p) => ({ ...p, selectedFont: font }))} className={`px-4 py-2 rounded-lg border text-left transition ${isSelected ? 'border-black bg-black text-white' : 'border-gray-200 hover:border-black bg-white'}`}>
-                                    <span className="text-xs font-bold uppercase tracking-wider block mb-0.5">{fontCfg.label}</span>
-                                    <span style={isSelected ? { ...fontCfg.style, color: '#fff' } : fontCfg.style} className="text-sm">{fontCfg.preview}</span>
+                                <button key={font} onClick={() => setSelected((p) => ({ ...p, selectedFont: font }))}
+                                        className={`px-4 py-2 rounded-lg border text-left transition ${isSelected ? 'border-black bg-black text-white' : 'border-[var(--border)] hover:border-[var(--text-primary)] bg-[var(--bg-secondary)]'}`}
+                                >
+                                    <span className="text-xs font-bold uppercase tracking-wider block mb-0.5" style={{ color: isSelected ? '#fff' : 'var(--text-secondary)' }}>{fontCfg.label}</span>
+                                    <span style={{ ...fontCfg.style, color: isSelected ? '#fff' : 'var(--text-primary)' }} className="text-sm">{fontCfg.preview}</span>
                                 </button>
                             );
                         })}
@@ -237,20 +219,18 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
             )}
 
             <div>
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Головне досягнення на картці</p>
+                <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Головне досягнення на картці</p>
                 <div className="grid grid-cols-3 gap-2">
                     {badges.map((badge) => {
                         const badgeId = badge.key;
                         const isSelected = selected.selectedBadgeId === badgeId;
                         return (
-                            <button
-                                key={badge.key}
-                                onClick={() => setSelected((p) => ({ ...p, selectedBadgeId: isSelected ? '' : badgeId }))}
-                                className={`p-2 rounded-lg border text-center transition ${isSelected ? 'border-black bg-gray-900' : 'border-gray-200 hover:border-gray-400 bg-white'}`}
-                                title={badge.description}
+                            <button key={badge.key} onClick={() => setSelected((p) => ({ ...p, selectedBadgeId: isSelected ? '' : badgeId }))}
+                                    className={`p-2 rounded-lg border text-center transition ${isSelected ? 'border-black bg-gray-900' : 'border-[var(--border)] hover:border-[var(--text-secondary)] bg-[var(--bg-secondary)]'}`}
+                                    title={badge.description}
                             >
                                 <span className="text-xl block">{badge.icon}</span>
-                                <span className={`text-xs truncate block ${isSelected ? 'text-white' : 'text-gray-600'}`}>{badge.name}</span>
+                                <span className={`text-xs truncate block ${isSelected ? 'text-white' : 'text-[var(--text-secondary)]'}`}>{badge.name}</span>
                             </button>
                         );
                     })}
@@ -258,24 +238,23 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
             </div>
 
             <div>
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Цитата на картці</p>
+                <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Цитата на картці</p>
                 <div className="relative">
                     <textarea
                         value={selected.quote}
                         onChange={(e) => setSelected((p) => ({ ...p, quote: e.target.value }))}
                         placeholder="Введіть свою цитату..."
-                        maxLength={80}
-                        rows={2}
-                        className="w-full border border-gray-300 rounded-lg p-3 pr-24 text-sm focus:ring-2 focus:ring-black outline-none resize-none"
+                        maxLength={80} rows={2}
+                        className="w-full border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-lg p-3 pr-24 text-sm focus:ring-2 focus:ring-black outline-none resize-none"
                     />
                     <button onClick={() => {
                         const available = RANDOM_QUOTES.filter((q) => q !== selected.quote);
                         setSelected((p) => ({ ...p, quote: available[Math.floor(Math.random() * available.length)] }));
-                    }} className="absolute right-2 top-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded transition">
+                    }} className="absolute right-2 top-2 text-xs bg-[var(--bg-secondary)] hover:bg-[var(--border)] text-[var(--text-secondary)] px-2 py-1 rounded transition">
                         🎲 Випадкова
                     </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{selected.quote.length}/80 символів</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{selected.quote.length}/80 символів</p>
             </div>
         </div>
     );
