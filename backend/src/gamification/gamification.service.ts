@@ -567,10 +567,15 @@ export class GamificationService {
       throw new ForbiddenException('Цей шрифт ще не розблоковано');
 
     if (data.selectedBadgeId) {
-      const hasBadge = userBadges.some(
-        (ub) => ub.badgeId === data.selectedBadgeId,
-      );
+      const badge = await this.prisma.badge.findFirst({
+        where: {
+          OR: [{ key: data.selectedBadgeId }, { id: data.selectedBadgeId }],
+        },
+      });
+      if (!badge) throw new ForbiddenException('Цей бейдж не розблоковано');
+      const hasBadge = userBadges.some((ub) => ub.badgeId === badge.id);
       if (!hasBadge) throw new ForbiddenException('Цей бейдж не розблоковано');
+      data.selectedBadgeId = badge.id;
     }
 
     const currentProfile = await this.prisma.donorProfile.findUnique({
