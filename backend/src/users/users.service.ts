@@ -31,6 +31,38 @@ export class UsersService {
     return user;
   }
 
+  async getPublicProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        role: true,
+        createdAt: true,
+        donorProfile: {
+          select: {
+            level: true,
+            totalAmount: true,
+            donationCount: true,
+            selectedFrame: true,
+            selectedBackground: true,
+            selectedFont: true,
+            selectedBadgeId: true,
+            quote: true,
+          },
+        },
+        userBadges: {
+          include: { badge: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
   async getAll(q?: string, role?: string) {
     return this.prisma.user.findMany({
       where: {
@@ -74,14 +106,9 @@ export class UsersService {
           orderBy: { createdAt: 'desc' },
         },
         donations: {
-          where: {
-            status: 'approved',
-            donorId: { not: null },
-          },
+          where: { status: 'approved', donorId: { not: null } },
           include: {
-            campaign: {
-              select: { id: true, title: true, category: true },
-            },
+            campaign: { select: { id: true, title: true, category: true } },
           },
           orderBy: { createdAt: 'desc' },
         },
@@ -105,10 +132,7 @@ export class UsersService {
     if (target.role === 'admin')
       throw new ForbiddenException('Cannot change admin role');
 
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { role },
-    });
+    return this.prisma.user.update({ where: { id: userId }, data: { role } });
   }
 
   async updateProfile(userId: string, dto: UpdateUserDto) {

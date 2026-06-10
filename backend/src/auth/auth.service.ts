@@ -42,16 +42,17 @@ export class AuthService {
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(dto.password, salt);
+    const avatarSeed = encodeURIComponent(dto.name);
 
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         name: dto.name,
         password: hashedPassword,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
       },
     });
 
-    // Видаємо бейдж за реєстрацію
     await this.gamification.grantBadgeSystem(user.id, 'welcome');
     return this.login(user);
   }

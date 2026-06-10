@@ -31,6 +31,12 @@ export class DonationsController {
     return this.donationsService.handleWebhook(body);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('my')
+  findMyDonations(@Request() req) {
+    return this.donationsService.findByUser(req.user.id);
+  }
+
   @Get('campaign/:id')
   findByCampaign(@Param('id') id: string) {
     return this.donationsService.findByCampaign(id);

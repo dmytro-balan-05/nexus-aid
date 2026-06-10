@@ -5,13 +5,17 @@ import {
 } from '@nestjs/common';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { PrismaService } from '../prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 
 @Injectable()
 export class CampaignsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gamification: GamificationService,
+  ) {}
 
   async create(createCampaignDto: CreateCampaignDto, authorId: string) {
-    return this.prisma.campaign.create({
+    const campaign = await this.prisma.campaign.create({
       data: {
         title: createCampaignDto.title,
         shortDescription: createCampaignDto.shortDescription,
@@ -30,6 +34,10 @@ export class CampaignsService {
         authorId,
       },
     });
+
+    await this.gamification.grantBadgeSystem(authorId, 'campaign_creator');
+
+    return campaign;
   }
 
   async delete(id: string) {

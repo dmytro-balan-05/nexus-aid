@@ -4,10 +4,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { GamificationService } from '../gamification/gamification.service';
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gamification: GamificationService,
+  ) {}
 
   async getOrCreateChat(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -34,21 +38,26 @@ export class ChatService {
   }
 
   async sendMessage(userId: string, text: string, isAdmin: boolean) {
-    let chat;
+    if (isAdmin) throw new ForbiddenException('Admin must specify chatId');
 
-    if (isAdmin) {
-      throw new ForbiddenException('Admin must specify chatId');
-    }
-
-    chat = await this.prisma.chat.findUnique({ where: { userId } });
+    const chat = await this.prisma.chat.findUnique({ where: { userId } });
     if (!chat) throw new NotFoundException('Chat not found');
 
-    return this.prisma.chatMessage.create({
-      data: { chatId: chat.id, senderId: userId, text, isAdmin },
+    const message = await this.prisma.chatMessage.create({
+      data: { chatId: chat.id, senderId: userId, text, isAdmin, isRead: false },
       include: {
         sender: { select: { id: true, name: true, avatar: true, role: true } },
       },
     });
+
+    const messageCount = await this.prisma.chatMessage.count({
+      where: { senderId: userId, isAdmin: false },
+    });
+    if (messageCount >= 10) {
+      await this.gamification.grantBadgeSystem(userId, 'chat_active');
+    }
+
+    return message;
   }
 
   async sendMessageAdmin(chatId: string, adminId: string, text: string) {
@@ -56,10 +65,36 @@ export class ChatService {
     if (!chat) throw new NotFoundException('Chat not found');
 
     return this.prisma.chatMessage.create({
-      data: { chatId, senderId: adminId, text, isAdmin: true },
+      data: { chatId, senderId: adminId, text, isAdmin: true, isRead: false },
       include: {
         sender: { select: { id: true, name: true, avatar: true, role: true } },
       },
+    });
+  }
+
+  async markAsRead(userId: string) {
+    const chat = await this.prisma.chat.findUnique({ where: { userId } });
+    if (!chat) return;
+
+    await this.prisma.chatMessage.updateMany({
+      where: { chatId: chat.id, isAdmin: true, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
+  async markAsReadAdmin(chatId: string) {
+    await this.prisma.chatMessage.updateMany({
+      where: { chatId, isAdmin: false, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    const chat = await this.prisma.chat.findUnique({ where: { userId } });
+    if (!chat) return 0;
+
+    return this.prisma.chatMessage.count({
+      where: { chatId: chat.id, isAdmin: true, isRead: false },
     });
   }
 
@@ -83,7 +118,7 @@ export class ChatService {
   }
 
   async getAllChats() {
-    return this.prisma.chat.findMany({
+    const chats = await this.prisma.chat.findMany({
       include: {
         user: { select: { id: true, name: true, avatar: true, role: true } },
         messages: {
@@ -93,5 +128,14 @@ export class ChatService {
       },
       orderBy: { updatedAt: 'desc' },
     });
+
+    return Promise.all(
+      chats.map(async (chat) => {
+        const unreadCount = await this.prisma.chatMessage.count({
+          where: { chatId: chat.id, isAdmin: false, isRead: false },
+        });
+        return { ...chat, unreadCount };
+      }),
+    );
   }
 }

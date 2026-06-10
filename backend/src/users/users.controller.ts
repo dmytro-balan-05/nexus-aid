@@ -28,6 +28,12 @@ export class UsersController {
     return this.usersService.getProfile(req.user.id);
   }
 
+  @Get(':id/profile')
+  async getPublicProfile(@Param('id') id: string, @Request() req) {
+    await this.gamificationService.processProfileView(req.user.id, id);
+    return this.usersService.getPublicProfile(id);
+  }
+
   @Get()
   async getAll(
     @Query('q') q: string,
@@ -45,8 +51,10 @@ export class UsersController {
   }
 
   @Patch('me')
-  updateProfile(@Request() req, @Body() dto: UpdateUserDto) {
-    return this.usersService.updateProfile(req.user.id, dto);
+  async updateProfile(@Request() req, @Body() dto: UpdateUserDto) {
+    const result = await this.usersService.updateProfile(req.user.id, dto);
+    await this.gamificationService.processAfterProfileUpdate(req.user.id);
+    return result;
   }
 
   @Patch(':id/role')

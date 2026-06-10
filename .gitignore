@@ -21,6 +21,7 @@ uploads/
 pgdata/
 postgres-data/
 *.sqlite
+backend/prisma/seed.ts
 
 # === SPECIFIC NESTJS ===
 npm-debug.log*

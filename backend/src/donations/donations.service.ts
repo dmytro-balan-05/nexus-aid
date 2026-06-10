@@ -52,6 +52,11 @@ export class DonationsService {
     const returnUrl = this.config.get<string>('WFP_RETURN_URL')!;
     const serviceUrl = this.config.get<string>('WFP_SERVICE_URL')!;
 
+    const progressAtDonation =
+      campaign.goalAmount > 0
+        ? Math.round((campaign.currentAmount / campaign.goalAmount) * 100)
+        : 0;
+
     await this.prisma.donation.create({
       data: {
         amount: dto.amount,
@@ -61,6 +66,7 @@ export class DonationsService {
         donorId: userId || null,
         donorName: dto.donorName || null,
         donorEmail: dto.donorEmail || null,
+        campaignProgressAtDonation: progressAtDonation,
       },
     });
 
@@ -124,9 +130,7 @@ export class DonationsService {
         }),
         this.prisma.campaign.update({
           where: { id: donation.campaignId },
-          data: {
-            currentAmount: { increment: donation.amount },
-          },
+          data: { currentAmount: { increment: donation.amount } },
         }),
       ]);
 
@@ -134,8 +138,23 @@ export class DonationsService {
         await this.gamification.processAfterDonation(
           donation.donorId,
           donation.campaign.category,
+          donation.amount,
+          donation.campaignId,
         );
       }
+
+      const updatedCampaign = await this.prisma.campaign.findUnique({
+        where: { id: donation.campaignId },
+        select: { currentAmount: true, goalAmount: true },
+      });
+
+      if (
+        updatedCampaign &&
+        updatedCampaign.currentAmount >= updatedCampaign.goalAmount
+      ) {
+        await this.gamification.processAfterCampaignFunded(donation.campaignId);
+      }
+      
     } else if (['Declined', 'Expired'].includes(body.transactionStatus)) {
       await this.prisma.donation.update({
         where: { orderReference: body.orderReference },
@@ -157,12 +176,29 @@ export class DonationsService {
     };
   }
 
+  async findByUser(userId: string) {
+    return this.prisma.donation.findMany({
+      where: { donorId: userId, status: 'approved' },
+      select: {
+        id: true,
+        amount: true,
+        createdAt: true,
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            images: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async findByCampaign(campaignId: string) {
     return this.prisma.donation.findMany({
-      where: {
-        campaignId,
-        status: 'approved',
-      },
+      where: { campaignId, status: 'approved' },
       select: {
         id: true,
         amount: true,

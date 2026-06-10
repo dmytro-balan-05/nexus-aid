@@ -45,10 +45,12 @@ model User {
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 
-  campaigns    Campaign[]
-  donations    Donation[]
-  donorProfile DonorProfile?
-  userBadges   UserBadge[]
+  campaigns        Campaign[]
+  donations        Donation[]
+  donorProfile     DonorProfile?
+  userBadges       UserBadge[]
+  profileViewsMade ProfileView[] @relation("Viewer")
+  profileViewsGot  ProfileView[] @relation("Target")
 
   @@unique([provider, socialId])
 }
@@ -128,8 +130,9 @@ model Donation {
 
   status DonationStatus @default(pending)
 
-  campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaignId                 String
+  campaign                   Campaign @relation(fields: [campaignId], references: [id])
+  campaignProgressAtDonation Int?
 
   donorId String?
   donor   User?   @relation(fields: [donorId], references: [id])
@@ -153,7 +156,8 @@ model Badge {
   unlocksBackground String?
   unlocksFont       String?
 
-  userBadges UserBadge[]
+  userBadges    UserBadge[]
+  donorProfiles DonorProfile[]
 }
 
 model UserBadge {
@@ -184,8 +188,18 @@ model DonorProfile {
   selectedFont       String?
   quote              String?
 
+  selectedBadgeId String?
+  selectedBadge   Badge?  @relation(fields: [selectedBadgeId], references: [id])
+
+  customizationChangeCount Int       @default(0)
+  currentDayStreak         Int       @default(0)
+  longestDayStreak         Int       @default(0)
+  currentMonthStreak       Int       @default(0)
+  lastDonationDate         DateTime?
+
   updatedAt DateTime @updatedAt
 }
+
 model Chat {
   id        String        @id @default(uuid())
   userId    String        @unique
@@ -203,5 +217,18 @@ model ChatMessage {
   sender    User     @relation(fields: [senderId], references: [id])
   text      String
   isAdmin   Boolean  @default(false)
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model ProfileView {
+  id        String   @id @default(uuid())
+  viewerId  String
+  targetId  String
+  viewer    User     @relation("Viewer", fields: [viewerId], references: [id])
+  target    User     @relation("Target", fields: [targetId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([viewerId])
+  @@index([targetId])
 }
