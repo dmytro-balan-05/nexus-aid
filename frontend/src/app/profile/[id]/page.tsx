@@ -44,17 +44,24 @@ const LEVEL_LABELS: Record<string, string> = {
 
 export default function PublicProfilePage() {
     const { id } = useParams<{ id: string }>();
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const [profile, setProfile] = useState<PublicProfile | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
     useEffect(() => {
+        if (!authLoading && !user) {
+            router.replace('/login');
+            return;
+        }
+
         if (user && id === user.id) {
             router.replace('/profile');
             return;
         }
+
+        if (!user) return;
 
         fetch(`/api/users/${id}/profile`, { credentials: 'include' })
             .then((r) => {
@@ -62,22 +69,22 @@ export default function PublicProfilePage() {
                 return r.json();
             })
             .then((data) => { if (data) setProfile(data); })
-            .finally(() => setIsLoading(false));
-    }, [id, user, router]);
+            .finally(() => setPageLoading(false));
+    }, [id, user, authLoading, router]);
 
-    if (isLoading) {
+    if (authLoading || pageLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-gray-400 text-sm">Завантаження...</div>
+            <div className="min-h-screen flex items-center justify-center bg-[var(--bg-secondary)]">
+                <div className="text-[var(--text-secondary)] text-sm">Завантаження...</div>
             </div>
         );
     }
 
     if (notFound || !profile) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
-                <div className="text-2xl font-bold text-gray-900">Профіль не знайдено</div>
-                <Link href="/" className="text-sm text-blue-600 font-bold hover:text-blue-800 transition">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg-secondary)] gap-4">
+                <div className="text-2xl font-bold text-[var(--text-primary)]">Профіль не знайдено</div>
+                <Link href="/" className="text-sm font-bold hover:opacity-70 transition" style={{ color: 'var(--accent)' }}>
                     ← На головну
                 </Link>
             </div>
@@ -88,25 +95,17 @@ export default function PublicProfilePage() {
     const dp = profile.donorProfile;
 
     return (
-        <div className="min-h-screen bg-gray-50 text-black">
+        <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)]">
             <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-
-                <Link href="/" className="text-sm text-gray-400 hover:text-black transition">
+                <Link href="/" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
                     ← Назад
                 </Link>
 
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                    <div
-                        className="h-24"
-                        style={{ background: dp?.selectedBackground || 'linear-gradient(to right, #111827, #374151)' }}
-                    />
+                <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] overflow-hidden">
+                    <div className="h-24" style={{ background: dp?.selectedBackground || 'linear-gradient(to right, #111827, #374151)' }} />
                     <div className="px-6 pb-6">
                         <div className="flex items-end justify-between -mt-12 mb-4">
-                            <img
-                                src={avatarUrl}
-                                alt={profile.name || 'Avatar'}
-                                className="w-20 h-20 rounded-2xl border-4 border-white object-cover shadow-md"
-                            />
+                            <img src={avatarUrl} alt={profile.name || 'Avatar'} className="w-20 h-20 rounded-2xl border-4 border-[var(--bg-card)] object-cover shadow-md" />
                             {dp && (
                                 <span className={`text-xs font-bold px-3 py-1 rounded-full mb-2 ${LEVEL_COLORS[dp.level] || 'bg-gray-100 text-gray-800'}`}>
                                     {LEVEL_LABELS[dp.level] || dp.level}
@@ -115,7 +114,7 @@ export default function PublicProfilePage() {
                         </div>
 
                         <div className="flex items-center gap-3 flex-wrap mb-1">
-                            <h1 className="text-2xl font-extrabold text-gray-900">{profile.name || 'Анонім'}</h1>
+                            <h1 className="text-2xl font-extrabold text-[var(--text-primary)]">{profile.name || 'Анонім'}</h1>
                             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                                 profile.role === 'admin'     ? 'bg-purple-100 text-purple-800' :
                                     profile.role === 'volonteer' ? 'bg-orange-100 text-orange-800' :
@@ -125,19 +124,17 @@ export default function PublicProfilePage() {
                             </span>
                         </div>
 
-                        {dp?.quote && (
-                            <p className="text-gray-500 text-sm italic mt-1">"{dp.quote}"</p>
-                        )}
+                        {dp?.quote && <p className="text-[var(--text-secondary)] text-sm italic mt-1">"{dp.quote}"</p>}
 
                         {dp && (
                             <div className="grid grid-cols-2 gap-3 mt-4">
-                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-center">
-                                    <div className="text-xl font-black text-gray-900">{dp.totalAmount.toLocaleString()} ₴</div>
-                                    <div className="text-xs text-gray-400 mt-0.5">задоначено</div>
+                                <div className="bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border)] text-center">
+                                    <div className="text-xl font-black text-[var(--text-primary)]">{dp.totalAmount.toLocaleString()} ₴</div>
+                                    <div className="text-xs text-[var(--text-secondary)] mt-0.5">задоначено</div>
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-center">
-                                    <div className="text-xl font-black text-gray-900">{dp.donationCount}</div>
-                                    <div className="text-xs text-gray-400 mt-0.5">донатів</div>
+                                <div className="bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border)] text-center">
+                                    <div className="text-xl font-black text-[var(--text-primary)]">{dp.donationCount}</div>
+                                    <div className="text-xs text-[var(--text-secondary)] mt-0.5">донатів</div>
                                 </div>
                             </div>
                         )}
@@ -145,15 +142,15 @@ export default function PublicProfilePage() {
                 </div>
 
                 {profile.userBadges.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                        <h2 className="text-lg font-bold text-gray-900 mb-4">🏆 Досягнення</h2>
+                    <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] p-6">
+                        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">🏆 Досягнення</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {profile.userBadges.map(({ badge }) => (
-                                <div key={badge.key} className="bg-gray-50 rounded-xl p-3 border border-gray-100 flex items-center gap-3">
+                                <div key={badge.key} className="bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border)] flex items-center gap-3">
                                     <span className="text-2xl">{badge.icon}</span>
                                     <div>
-                                        <div className="font-bold text-sm text-gray-900">{badge.name}</div>
-                                        <div className="text-xs text-gray-400">{badge.description}</div>
+                                        <div className="font-bold text-sm text-[var(--text-primary)]">{badge.name}</div>
+                                        <div className="text-xs text-[var(--text-secondary)]">{badge.description}</div>
                                     </div>
                                 </div>
                             ))}

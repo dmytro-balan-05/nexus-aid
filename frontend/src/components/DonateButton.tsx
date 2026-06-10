@@ -20,30 +20,16 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
     const [error, setError] = useState('');
 
     const handleSubmit = async () => {
-        if (!amount || Number(amount) < 10) {
-            setError('Мінімальна сума — 10 ₴');
-            return;
-        }
-
-        if (!user && (!donorName || !donorEmail)) {
-            setError('Вкажіть імʼя та email');
-            return;
-        }
+        if (!amount || Number(amount) < 10) { setError('Мінімальна сума — 10 ₴'); return; }
+        if (!user && (!donorName || !donorEmail)) { setError('Вкажіть імʼя та email'); return; }
 
         setIsLoading(true);
         setError('');
 
         try {
-            const endpoint = user
-                ? '/api/donations/initiate'
-                : '/api/donations/initiate/anonymous';
-
+            const endpoint = user ? '/api/donations/initiate' : '/api/donations/initiate/anonymous';
             const body: any = { campaignId, amount: Number(amount) };
-
-            if (!user) {
-                body.donorName = donorName;
-                body.donorEmail = donorEmail;
-            }
+            if (!user) { body.donorName = donorName; body.donorEmail = donorEmail; }
 
             const res = await fetch(endpoint, {
                 method: 'POST',
@@ -52,14 +38,9 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
                 body: JSON.stringify(body),
             });
 
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || 'Помилка при ініціалізації платежу');
-            }
+            if (!res.ok) throw new Error(await res.text() || 'Помилка при ініціалізації платежу');
 
             const data = await res.json();
-
-            // Формуємо і сабмітимо форму на WayForPay
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = 'https://secure.wayforpay.com/pay';
@@ -91,7 +72,6 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
 
             document.body.appendChild(form);
             form.submit();
-
         } catch (err: any) {
             setError(err.message || 'Помилка');
             setIsLoading(false);
@@ -102,25 +82,20 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition shadow-lg hover:shadow-xl transform active:scale-95"
+                className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition shadow-lg active:scale-95"
             >
                 Підтримати збір
             </button>
 
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+                    <div className="bg-[var(--bg-card)] rounded-2xl p-8 w-full max-w-md shadow-2xl border border-[var(--border)]">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">Підтримати збір</h2>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="text-gray-400 hover:text-black text-2xl leading-none"
-                            >
-                                ×
-                            </button>
+                            <h2 className="text-2xl font-bold text-[var(--text-primary)]">Підтримати збір</h2>
+                            <button onClick={() => setIsOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-2xl leading-none transition">×</button>
                         </div>
 
-                        <p className="text-gray-500 text-sm mb-6 truncate">{campaignTitle}</p>
+                        <p className="text-[var(--text-secondary)] text-sm mb-6 truncate">{campaignTitle}</p>
 
                         <div className="grid grid-cols-3 gap-2 mb-4">
                             {PRESET_AMOUNTS.map((preset) => (
@@ -130,7 +105,7 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
                                     className={`py-2 rounded-lg border font-bold text-sm transition ${
                                         amount === preset
                                             ? 'bg-black text-white border-black'
-                                            : 'border-gray-200 hover:border-black'
+                                            : 'border-[var(--border)] text-[var(--text-primary)] bg-[var(--bg-secondary)] hover:border-[var(--text-primary)]'
                                     }`}
                                 >
                                     {preset} ₴
@@ -145,35 +120,33 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
                                 placeholder="Або введіть свою суму"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : '')}
-                                className="w-full border border-gray-300 rounded-lg p-3 pr-8 focus:ring-2 focus:ring-black outline-none"
+                                className="w-full border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl p-3 pr-8 focus:ring-2 focus:ring-black outline-none"
                             />
-                            <span className="absolute right-3 top-3 text-gray-400 font-bold">₴</span>
+                            <span className="absolute right-3 top-3 text-[var(--text-secondary)] font-bold">₴</span>
                         </div>
 
                         {!user && (
-                            <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                <p className="text-xs text-gray-500 font-bold uppercase">Дані для анонімного донату</p>
+                            <div className="space-y-3 mb-4 p-4 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)]">
+                                <p className="text-xs text-[var(--text-secondary)] font-bold uppercase">Дані для анонімного донату</p>
                                 <input
                                     type="text"
                                     placeholder="Ваше імʼя"
                                     value={donorName}
                                     onChange={(e) => setDonorName(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-black outline-none"
+                                    className="w-full border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl p-3 focus:ring-2 focus:ring-black outline-none"
                                 />
                                 <input
                                     type="email"
                                     placeholder="Email"
                                     value={donorEmail}
                                     onChange={(e) => setDonorEmail(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-black outline-none"
+                                    className="w-full border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl p-3 focus:ring-2 focus:ring-black outline-none"
                                 />
                             </div>
                         )}
 
                         {error && (
-                            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 border border-red-200">
-                                {error}
-                            </div>
+                            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 border border-red-200">{error}</div>
                         )}
 
                         <button
@@ -184,7 +157,7 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
                             {isLoading ? 'Перенаправлення...' : `Задонатити ${amount ? `${amount} ₴` : ''}`}
                         </button>
 
-                        <p className="text-center text-xs text-gray-400 mt-4">
+                        <p className="text-center text-xs text-[var(--text-secondary)] mt-4">
                             Оплата через захищену сторінку WayForPay
                         </p>
                     </div>

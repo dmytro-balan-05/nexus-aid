@@ -6,21 +6,14 @@ import { useParams, useRouter } from 'next/navigation';
 const BACKEND_URL = 'https://nexus-aid-production.up.railway.app';
 
 interface VerificationMessage {
-    id: string;
-    text: string;
-    isAdmin: boolean;
-    createdAt: string;
+    id: string; text: string; isAdmin: boolean; createdAt: string;
     sender: { id: string; name: string; avatar: string | null; role: string };
 }
 
 interface VerificationRequest {
-    id: string;
-    status: 'pending' | 'approved' | 'rejected';
-    about: string;
-    experience: string;
-    socialLinks: string | null;
-    documents: string[];
-    createdAt: string;
+    id: string; status: 'pending' | 'approved' | 'rejected';
+    about: string; experience: string; socialLinks: string | null;
+    documents: string[]; createdAt: string;
     user: { id: string; name: string; email: string; avatar: string | null; role: string };
     messages: VerificationMessage[];
 }
@@ -41,7 +34,7 @@ export default function AdminVerificationDetailPage() {
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-    const [message, setMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const fetchRequest = async () => {
         const res = await fetch(`/api/verification/${id}`, { credentials: 'include' });
@@ -50,30 +43,22 @@ export default function AdminVerificationDetailPage() {
     };
 
     useEffect(() => { fetchRequest(); }, [id]);
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [request?.messages]);
+    useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [request?.messages]);
 
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !request) return;
         setIsSending(true);
         try {
             const res = await fetch(`/api/verification/${id}/message`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ text: newMessage }),
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', body: JSON.stringify({ text: newMessage }),
             });
             if (!res.ok) throw new Error();
             const msg = await res.json();
             setRequest((prev) => prev ? { ...prev, messages: [...prev.messages, msg] } : prev);
             setNewMessage('');
-        } catch {
-            alert('Помилка відправки');
-        } finally {
-            setIsSending(false);
-        }
+        } catch { alert('Помилка відправки'); }
+        finally { setIsSending(false); }
     };
 
     const handleStatus = async (status: 'approved' | 'rejected') => {
@@ -81,53 +66,37 @@ export default function AdminVerificationDetailPage() {
         setIsUpdatingStatus(true);
         try {
             const res = await fetch(`/api/verification/${id}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ status }),
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', body: JSON.stringify({ status }),
             });
             if (!res.ok) throw new Error();
-            setMessage(status === 'approved' ? 'Заявку підтверджено' : 'Заявку відхилено');
+            setSuccessMessage(status === 'approved' ? 'Заявку підтверджено ✅' : 'Заявку відхилено ❌');
             await fetchRequest();
-        } catch {
-            alert('Помилка');
-        } finally {
-            setIsUpdatingStatus(false);
-        }
+        } catch { alert('Помилка'); }
+        finally { setIsUpdatingStatus(false); }
     };
 
-    if (isLoading) return <div className="py-10 text-center text-gray-400 text-sm">Завантаження...</div>;
+    if (isLoading) return <div className="py-10 text-center text-[var(--text-secondary)] text-sm">Завантаження...</div>;
     if (!request) return <div className="py-10 text-center text-red-400 text-sm">Заявку не знайдено</div>;
 
-    const avatarUrl = request.user.avatar
-        ? request.user.avatar
-        : `https://ui-avatars.com/api/?name=${request.user.name || 'U'}&background=random&size=128`;
+    const avatarUrl = request.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(request.user.name || 'U')}`;
 
     return (
         <div className="pb-10 space-y-6">
-            <button
-                onClick={() => router.push('/admin/verification')}
-                className="text-sm text-gray-500 hover:text-black transition"
-            >
-                {`← Назад до заявок`}
+            <button onClick={() => router.push('/admin/verification')} className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                ← Назад до заявок
             </button>
 
-            {message && (
-                <div className="bg-green-50 text-green-700 text-sm p-3 rounded-xl border border-green-200 font-bold">
-                    {message}
-                </div>
+            {successMessage && (
+                <div className="bg-green-50 text-green-700 text-sm p-3 rounded-xl border border-green-200 font-bold">{successMessage}</div>
             )}
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] p-6">
                 <div className="flex items-center gap-4 mb-4">
-                    <img
-                        src={avatarUrl}
-                        alt={request.user.name}
-                        className="w-14 h-14 rounded-xl object-cover border border-gray-200"
-                    />
+                    <img src={avatarUrl} alt={request.user.name} className="w-14 h-14 rounded-xl object-cover border border-[var(--border)]" />
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">{request.user.name || 'Без імені'}</h2>
-                        <p className="text-sm text-gray-400">{request.user.email}</p>
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">{request.user.name || 'Без імені'}</h2>
+                        <p className="text-sm text-[var(--text-secondary)]">{request.user.email}</p>
                     </div>
                     <span className={`ml-auto text-xs font-bold px-3 py-1 rounded-full ${STATUS_CONFIG[request.status].color}`}>
                         {STATUS_CONFIG[request.status].label}
@@ -136,63 +105,51 @@ export default function AdminVerificationDetailPage() {
 
                 <div className="space-y-4">
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase mb-1">Про себе</p>
-                        <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            {request.about}
-                        </p>
+                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Про себе</p>
+                        <p className="text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border)]">{request.about}</p>
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase mb-1">Досвід</p>
-                        <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            {request.experience}
-                        </p>
+                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Досвід</p>
+                        <p className="text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border)]">{request.experience}</p>
                     </div>
                     {request.socialLinks && (
                         <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Соцмережі</p>
-                            <p className="text-sm text-blue-600">{request.socialLinks}</p>
+                            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">Соцмережі</p>
+                            <p className="text-sm" style={{ color: 'var(--accent)' }}>{request.socialLinks}</p>
                         </div>
                     )}
                     {request.documents.length > 0 && (
                         <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-2">Документи</p>
+                            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">Документи</p>
                             <div className="flex flex-wrap gap-2">
                                 {request.documents.map((doc, i) => (
-<a
-                                    key={i}
-                                    href={`${BACKEND_URL}${doc}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-700 transition"
-    >
-                                {`📎 Документ ${i + 1}`}
+                                    <a key={i} href={`${BACKEND_URL}${doc}`} target="_blank" rel="noopener noreferrer"
+                                       className="text-xs bg-[var(--bg-secondary)] hover:bg-[var(--border)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--text-secondary)] transition">
+                                        📎 Документ {i + 1}
                                     </a>
-                                    ))}
+                                ))}
                             </div>
                         </div>
-                        )}
+                    )}
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="font-bold text-gray-900">💬 Діалог</h3>
+            <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[var(--border)]">
+                    <h3 className="font-bold text-[var(--text-primary)]">💬 Діалог</h3>
                 </div>
-
                 <div className="p-4 space-y-3 min-h-32 max-h-80 overflow-y-auto">
                     {request.messages.length === 0 ? (
-                        <p className="text-center text-gray-300 text-sm py-6">Повідомлень ще немає</p>
+                        <p className="text-center text-[var(--text-secondary)] text-sm py-6">Повідомлень ще немає</p>
                     ) : (
                         request.messages.map((msg) => (
                             <div key={msg.id} className={`flex gap-2 ${msg.isAdmin ? 'flex-row-reverse' : ''}`}>
-                                <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-xs font-bold flex-shrink-0 text-[var(--text-secondary)]">
                                     {msg.sender.name?.[0]?.toUpperCase() || 'U'}
                                 </div>
-                                <div className={`max-w-sm rounded-xl px-3 py-2 text-sm ${
-                                    msg.isAdmin ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'
-                                }`}>
+                                <div className={`max-w-sm rounded-xl px-3 py-2 text-sm ${msg.isAdmin ? 'bg-black text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)]'}`}>
                                     {msg.text}
-                                    <div className="text-xs mt-1 text-gray-400">
+                                    <div className="text-xs mt-1 opacity-50">
                                         {msg.sender.name} · {new Date(msg.createdAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
@@ -201,42 +158,17 @@ export default function AdminVerificationDetailPage() {
                     )}
                     <div ref={messagesEndRef} />
                 </div>
-
                 <div className="px-4 pb-4 flex gap-2">
-                    <input
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                        placeholder="Написати повідомлення..."
-                        className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none"
-                    />
-                    <button
-                        onClick={handleSendMessage}
-                        disabled={isSending || !newMessage.trim()}
-                        className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition"
-                    >
-                        →
-                    </button>
+                    <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} placeholder="Написати повідомлення..." className="flex-1 border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" />
+                    <button onClick={handleSendMessage} disabled={isSending || !newMessage.trim()} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition">→</button>
                 </div>
             </div>
 
             {request.status === 'pending' && (
-            <div className="flex gap-3">
-                <button
-                    onClick={() => handleStatus('approved')}
-                    disabled={isUpdatingStatus}
-                    className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 disabled:opacity-50 transition"
-                >
-                    ✅ Підтвердити
-                </button>
-                <button
-                    onClick={() => handleStatus('rejected')}
-                    disabled={isUpdatingStatus}
-                    className="flex-1 border border-red-300 text-red-600 py-3 rounded-xl font-bold hover:bg-red-50 disabled:opacity-50 transition"
-                >
-                    ❌ Відхилити
-                </button>
-            </div>
+                <div className="flex gap-3">
+                    <button onClick={() => handleStatus('approved')} disabled={isUpdatingStatus} className="flex-1 bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 disabled:opacity-50 transition">✅ Підтвердити</button>
+                    <button onClick={() => handleStatus('rejected')} disabled={isUpdatingStatus} className="flex-1 border border-red-300 text-red-600 py-3 rounded-xl font-bold hover:bg-red-50 disabled:opacity-50 transition">❌ Відхилити</button>
+                </div>
             )}
         </div>
     );

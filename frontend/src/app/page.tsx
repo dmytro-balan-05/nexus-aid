@@ -98,7 +98,7 @@ export default function HomePage() {
                     <div className="max-w-5xl mx-auto">
                         <div className="flex items-center gap-3 mb-6">
                             <span className="text-2xl">⚡</span>
-                            <h2 className="text-2xl font-extrabold text-[var(--text-primary)]">Термінові збори</h2>
+                            <UrgentBadge />
                             <span className="text-sm text-[var(--text-secondary)]">— потребують допомоги зараз</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
