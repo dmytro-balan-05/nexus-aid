@@ -64,14 +64,14 @@ export default function Header() {
                         </button>
 
                         {user?.role === 'volonteer' && (
-                            <Link href="/profile" className="relative w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                            <div className="relative w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)]">
                                 🔔
                                 {unreadCount > 0 && (
                                     <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
-                                        {unreadCount > 9 ? '9+' : unreadCount}
-                                    </span>
+                {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
                                 )}
-                            </Link>
+                            </div>
                         )}
 
                         {user ? (
