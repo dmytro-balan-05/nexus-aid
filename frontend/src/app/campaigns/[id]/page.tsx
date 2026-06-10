@@ -3,6 +3,8 @@ import Link from 'next/link';
 import EditButton from '@/components/EditButton';
 import DonateButton from '@/components/DonateButton';
 
+const BACKEND_URL = 'https://nexus-aid-production.up.railway.app';
+
 interface Campaign {
     id: string;
     title: string;
@@ -24,7 +26,7 @@ interface Campaign {
 }
 
 async function getCampaign(id: string): Promise<Campaign> {
-    const res = await fetch(`http://localhost:3000/campaigns/${id}`, { cache: 'no-store' });
+    const res = await fetch(`${BACKEND_URL}/campaigns/${id}`, { cache: 'no-store' });
     if (!res.ok) {
         if (res.status === 404) return notFound();
         throw new Error('Failed to fetch campaign');
@@ -47,9 +49,7 @@ export default async function CampaignDetailPage({ params }: Props) {
     }
 
     const percent = Math.min((campaign.currentAmount / campaign.goalAmount) * 100, 100);
-    const mainImage = (campaign.images && campaign.images.length > 0)
-        ? campaign.images[0]
-        : 'https://placehold.co/800x400/png?text=NexusAid';
+    const mainImage = campaign.images?.[0] || 'https://placehold.co/800x400/png?text=NexusAid';
 
     return (
         <div className="container mx-auto p-6 max-w-5xl">
@@ -58,7 +58,6 @@ export default async function CampaignDetailPage({ params }: Props) {
             </Link>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
                 <div className="lg:col-span-2 space-y-8">
                     <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-100">
                         <img src={mainImage} alt={campaign.title} className="w-full h-auto object-cover" />
@@ -98,18 +97,16 @@ export default async function CampaignDetailPage({ params }: Props) {
                                     const cleanDocPath = doc.startsWith('/') ? doc.substring(1) : doc;
                                     const fullDocUrl = doc.startsWith('http')
                                         ? doc
-                                        : `http://localhost:3000/${cleanDocPath}`;
-
+                                        : `${BACKEND_URL}/${cleanDocPath}`;
                                     return (
-                                        <li key={index}>
-                                        <a
+                                            <li key={index}>
+<a
                                             href={fullDocUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:underline flex items-center gap-2"
                                             >
                                             {`📎 Переглянути документ ${index + 1}`}
-
                                         </a>
                                 </li>
                                 );

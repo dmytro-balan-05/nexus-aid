@@ -3,6 +3,7 @@ import CreateCampaignButton from '@/components/CreateCampaignButton';
 import SearchFilter from '@/components/SearchFilter';
 
 const DEFAULT_IMAGE = 'https://placehold.co/600x400/png?text=NexusAid';
+const BACKEND_URL = 'https://nexus-aid-production.up.railway.app';
 
 interface Author {
     name: string;
@@ -31,7 +32,7 @@ async function getCampaigns(searchParams: SearchParamsType) {
     Object.entries(searchParams).forEach(([key, value]) => {
         if (typeof value === 'string') params.append(key, value);
     });
-    const res = await fetch(`http://localhost:3000/campaigns?${params.toString()}`, { cache: 'no-store' });
+    const res = await fetch(`${BACKEND_URL}/campaigns?${params.toString()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('Failed to fetch');
     return res.json();
 }

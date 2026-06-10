@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
+const BACKEND_URL = 'https://nexus-aid-production.up.railway.app';
+
 interface VerificationMessage {
     id: string;
     text: string;
@@ -156,13 +158,13 @@ export default function AdminVerificationDetailPage() {
                             <p className="text-xs font-bold text-gray-400 uppercase mb-2">Документи</p>
                             <div className="flex flex-wrap gap-2">
                                 {request.documents.map((doc, i) => (
-                                    <a
+<a
                                     key={i}
-                                    href={`http://localhost:3000${doc}`}
+                                    href={`${BACKEND_URL}${doc}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-700 transition"
-                                    >
+    >
                                 {`📎 Документ ${i + 1}`}
                                     </a>
                                     ))}
