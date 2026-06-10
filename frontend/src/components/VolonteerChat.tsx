@@ -23,12 +23,19 @@ export default function VolonteerChat() {
     const [unreadCount, setUnreadCount] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const prevMessageCount = useRef(0);
 
     const loadChat = async () => {
         try {
             const res = await fetch('/api/chat/me', { credentials: 'include' });
             const data = await res.json();
-            setChat(data);
+            setChat((prev) => {
+                if (data.messages.length > prevMessageCount.current) {
+                    prevMessageCount.current = data.messages.length;
+                    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                }
+                return data;
+            });
         } catch {}
     };
 
@@ -49,8 +56,8 @@ export default function VolonteerChat() {
 
     useEffect(() => {
         loadUnread();
-        const unreadInterval = setInterval(loadUnread, 30000);
-        return () => clearInterval(unreadInterval);
+        const interval = setInterval(loadUnread, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -62,24 +69,13 @@ export default function VolonteerChat() {
                 markAsRead();
             }, 5000);
         } else {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-                pollingRef.current = null;
-            }
+            if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
             loadUnread();
         }
-
         return () => {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-                pollingRef.current = null;
-            }
+            if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
         };
     }, [isOpen]);
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chat?.messages]);
 
     const handleSend = async () => {
         if (!newMessage.trim() || !chat) return;
@@ -93,7 +89,13 @@ export default function VolonteerChat() {
             });
             if (!res.ok) throw new Error();
             const msg = await res.json();
-            setChat((prev) => prev ? { ...prev, messages: [...prev.messages, msg] } : prev);
+            setChat((prev) => {
+                if (!prev) return prev;
+                const updated = { ...prev, messages: [...prev.messages, msg] };
+                prevMessageCount.current = updated.messages.length;
+                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                return updated;
+            });
             setNewMessage('');
         } catch {
             alert('Помилка');
@@ -103,15 +105,15 @@ export default function VolonteerChat() {
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-[var(--bg-card)] rounded-2xl shadow-sm border border-[var(--border)] p-6">
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h2 className="text-lg font-bold text-gray-900">💬 Зв'язок з адміністрацією</h2>
-                    <p className="text-sm text-gray-400">Напишіть нам якщо є питання</p>
+                    <h2 className="text-lg font-bold text-[var(--text-primary)]">💬 Зв'язок з адміністрацією</h2>
+                    <p className="text-sm text-[var(--text-secondary)]">Напишіть нам якщо є питання</p>
                 </div>
                 <button
                     onClick={() => setIsOpen((p) => !p)}
-                    className="relative bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition"
+                    className="relative bg-black dark:bg-white dark:text-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:opacity-80 transition"
                 >
                     {isOpen ? 'Згорнути' : 'Відкрити чат'}
                     {!isOpen && unreadCount > 0 && (
@@ -123,21 +125,19 @@ export default function VolonteerChat() {
             </div>
 
             {isOpen && (
-                <div className="border border-gray-100 rounded-xl overflow-hidden">
+                <div className="border border-[var(--border)] rounded-xl overflow-hidden">
                     <div className="p-4 space-y-3 min-h-32 max-h-64 overflow-y-auto">
                         {!chat ? (
-                            <p className="text-center text-gray-300 text-sm py-4">Завантаження...</p>
+                            <p className="text-center text-[var(--text-secondary)] text-sm py-4">Завантаження...</p>
                         ) : chat.messages.length === 0 ? (
-                            <p className="text-center text-gray-300 text-sm py-4">Напишіть перше повідомлення</p>
+                            <p className="text-center text-[var(--text-secondary)] text-sm py-4">Напишіть перше повідомлення</p>
                         ) : (
                             chat.messages.map((msg) => (
                                 <div key={msg.id} className={`flex gap-2 ${!msg.isAdmin ? 'flex-row-reverse' : ''}`}>
                                     <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold flex-shrink-0">
                                         {msg.sender.name?.[0]?.toUpperCase() || 'U'}
                                     </div>
-                                    <div className={`max-w-xs rounded-xl px-3 py-2 text-sm ${
-                                        !msg.isAdmin ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'
-                                    }`}>
+                                    <div className={`max-w-xs rounded-xl px-3 py-2 text-sm ${!msg.isAdmin ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'}`}>
                                         {msg.text}
                                         <div className="text-xs mt-1 text-gray-400">
                                             {new Date(msg.createdAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
@@ -148,22 +148,15 @@ export default function VolonteerChat() {
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-
-                    <div className="px-4 pb-4 flex gap-2 border-t border-gray-100 pt-3">
+                    <div className="px-4 pb-4 flex gap-2 border-t border-[var(--border)] pt-3">
                         <input
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                             placeholder="Написати повідомлення..."
-                            className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none"
+                            className="flex-1 border border-[var(--border)] rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-[var(--bg-primary)] text-[var(--text-primary)]"
                         />
-                        <button
-                            onClick={handleSend}
-                            disabled={isSending || !newMessage.trim()}
-                            className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition"
-                        >
-                            →
-                        </button>
+                        <button onClick={handleSend} disabled={isSending || !newMessage.trim()} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition">→</button>
                     </div>
                 </div>
             )}

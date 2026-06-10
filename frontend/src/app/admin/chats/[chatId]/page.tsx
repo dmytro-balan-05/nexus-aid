@@ -21,6 +21,8 @@ export default function AdminChatDetailPage() {
     const { chatId } = useParams<{ chatId: string }>();
     const router = useRouter();
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const prevMessageCount = useRef(0);
 
     const [chat, setChat] = useState<Chat | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -28,16 +30,39 @@ export default function AdminChatDetailPage() {
     const [isSending, setIsSending] = useState(false);
 
     const fetchChat = async () => {
-        const res = await fetch(`/api/chat/admin/${chatId}`, { credentials: 'include' });
-        if (res.ok) setChat(await res.json());
-        setIsLoading(false);
+        try {
+            const res = await fetch(`/api/chat/admin/${chatId}`, { credentials: 'include' });
+            if (!res.ok) return;
+            const data = await res.json();
+            setChat((prev) => {
+                if (data.messages.length > prevMessageCount.current) {
+                    prevMessageCount.current = data.messages.length;
+                    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                }
+                return data;
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    useEffect(() => { fetchChat(); }, [chatId]);
+    const markAsRead = async () => {
+        try {
+            await fetch(`/api/chat/admin/${chatId}/read`, { method: 'POST', credentials: 'include' });
+        } catch {}
+    };
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chat?.messages]);
+        fetchChat();
+        markAsRead();
+        pollingRef.current = setInterval(() => {
+            fetchChat();
+            markAsRead();
+        }, 5000);
+        return () => {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+        };
+    }, [chatId]);
 
     const handleSend = async () => {
         if (!newMessage.trim() || !chat) return;
@@ -51,7 +76,13 @@ export default function AdminChatDetailPage() {
             });
             if (!res.ok) throw new Error();
             const msg = await res.json();
-            setChat((prev) => prev ? { ...prev, messages: [...prev.messages, msg] } : prev);
+            setChat((prev) => {
+                if (!prev) return prev;
+                const updated = { ...prev, messages: [...prev.messages, msg] };
+                prevMessageCount.current = updated.messages.length;
+                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+                return updated;
+            });
             setNewMessage('');
         } catch {
             alert('Помилка');
@@ -63,14 +94,12 @@ export default function AdminChatDetailPage() {
     if (isLoading) return <div className="py-10 text-center text-gray-400 text-sm">Завантаження...</div>;
     if (!chat) return <div className="py-10 text-center text-red-400 text-sm">Чат не знайдено</div>;
 
-    const avatarUrl = chat.user.avatar
-        ? chat.user.avatar
-        : `https://ui-avatars.com/api/?name=${chat.user.name || 'U'}&background=random&size=128`;
+    const avatarUrl = chat.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(chat.user.name || 'U')}`;
 
     return (
         <div className="pb-10 space-y-4">
             <button onClick={() => router.push('/admin/chats')} className="text-sm text-gray-500 hover:text-black transition">
-                {`← Назад до чатів`}
+                ← Назад до чатів
             </button>
 
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -91,9 +120,7 @@ export default function AdminChatDetailPage() {
                                 <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold flex-shrink-0">
                                     {msg.sender.name?.[0]?.toUpperCase() || 'U'}
                                 </div>
-                                <div className={`max-w-sm rounded-xl px-3 py-2 text-sm ${
-                                    msg.isAdmin ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'
-                                }`}>
+                                <div className={`max-w-sm rounded-xl px-3 py-2 text-sm ${msg.isAdmin ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'}`}>
                                     {msg.text}
                                     <div className="text-xs mt-1 text-gray-400">
                                         {new Date(msg.createdAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
@@ -113,11 +140,7 @@ export default function AdminChatDetailPage() {
                         placeholder="Написати повідомлення..."
                         className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none"
                     />
-                    <button
-                        onClick={handleSend}
-                        disabled={isSending || !newMessage.trim()}
-                        className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition"
-                    >
+                    <button onClick={handleSend} disabled={isSending || !newMessage.trim()} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition">
                         →
                     </button>
                 </div>

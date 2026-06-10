@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 interface Badge {
+    id?: string;
     key: string;
     name: string;
     description: string;
@@ -17,6 +18,7 @@ interface DonorProfile {
     selectedFrame: string | null;
     selectedBackground: string | null;
     selectedFont: string | null;
+    selectedBadgeId: string | null;
     quote: string | null;
 }
 
@@ -27,6 +29,7 @@ interface Props {
         selectedFrame?: string;
         selectedBackground?: string;
         selectedFont?: string;
+        selectedBadgeId?: string;
         quote?: string;
     }) => Promise<void>;
 }
@@ -38,22 +41,57 @@ const FONT_CONFIG: Record<string, { label: string; preview: string; style: React
     font_military: { label: 'Military', preview: 'Чіткий і строгий',  style: { fontFamily: 'Courier New, monospace' } },
 };
 
-const FRAME_CONFIG: Record<string, { label: string; preview: string }> = {
-    frame_simple:    { label: 'Звичайна',  preview: '○' },
-    frame_double:    { label: 'Подвійна',  preview: '◎' },
-    frame_square:    { label: 'Квадратна', preview: '□' },
-    frame_star:      { label: 'Зіркова',   preview: '✦' },
-    frame_drone:     { label: 'Дрон',      preview: '🚁' },
-    frame_wings:     { label: 'Крила',     preview: '✈️' },
-    frame_shield:    { label: 'Щит',       preview: '🛡️' },
-    frame_cross:     { label: 'Хрест',     preview: '➕' },
-    frame_medic:     { label: 'Медик',     preview: '💉' },
-    frame_ambulance: { label: 'Швидка',    preview: '🚑' },
-    frame_hands:     { label: 'Руки',      preview: '🤝' },
-    frame_heart:     { label: 'Серце',     preview: '❤️' },
-    frame_pillar:    { label: 'Стовп',     preview: '🏛️' },
-    frame_diamond:   { label: 'Діамант',   preview: '💎' },
-    frame_crown:     { label: 'Корона',    preview: '👑' },
+const FRAME_CONFIG: Record<string, { label: string; color: string; borderStyle?: string; borderRadius?: string }> = {
+    frame_simple:    { label: 'Звичайна',   color: '#9ca3af' },
+    frame_double:    { label: 'Подвійна',   color: '#6b7280', borderStyle: 'double' },
+    frame_square:    { label: 'Квадратна',  color: '#374151', borderRadius: '4px' },
+    frame_star:      { label: 'Зіркова',    color: '#facc15' },
+    frame_drone:     { label: 'Дрон',       color: '#6366f1', borderRadius: '4px' },
+    frame_wings:     { label: 'Крила',      color: '#8b5cf6' },
+    frame_shield:    { label: 'Щит',        color: '#3b82f6' },
+    frame_cross:     { label: 'Хрест',      color: '#f87171' },
+    frame_medic:     { label: 'Медик',      color: '#ef4444' },
+    frame_ambulance: { label: 'Швидка',     color: '#dc2626', borderRadius: '8px' },
+    frame_hands:     { label: 'Руки',       color: '#22c55e', borderStyle: 'dashed' },
+    frame_heart:     { label: 'Серце',      color: '#ec4899' },
+    frame_pillar:    { label: 'Стовп',      color: '#78716c', borderRadius: '4px' },
+    frame_diamond:   { label: 'Діамант',    color: '#22d3ee' },
+    frame_crown:     { label: 'Корона',     color: '#f59e0b' },
+    frame_coin:      { label: 'Монета',     color: '#fbbf24', borderStyle: 'double' },
+    frame_fire:      { label: 'Вогонь',     color: '#f97316' },
+    frame_explosion: { label: 'Вибух',      color: '#ef4444' },
+    frame_stars:     { label: 'Зірки',      color: '#a3e635' },
+    frame_medal:     { label: 'Медаль',     color: '#d97706', borderStyle: 'double' },
+    frame_hero:      { label: 'Герой',      color: '#7c3aed', borderRadius: '12px' },
+    frame_gold:      { label: 'Золото',     color: '#ca8a04', borderStyle: 'double' },
+    frame_clover:    { label: 'Конюшина',   color: '#4ade80' },
+    frame_mirror:    { label: 'Дзеркало',   color: '#94a3b8', borderStyle: 'dashed' },
+    frame_week:      { label: 'Тиждень',    color: '#fb923c' },
+    frame_podium:    { label: 'Подіум',     color: '#eab308' },
+    frame_secret:    { label: '???',        color: '#7c3aed', borderStyle: 'dashed' },
+    frame_emergency: { label: 'Екстрений',  color: '#dc2626', borderRadius: '4px' },
+    frame_hourglass: { label: 'Пісочний',   color: '#78716c' },
+    frame_seed:      { label: 'Зерно',      color: '#166534' },
+    frame_megaphone: { label: 'Рупор',      color: '#9333ea', borderRadius: '6px' },
+    frame_funded:    { label: 'Фінансовий', color: '#15803d' },
+    frame_loyal:     { label: 'Вірний',     color: '#dc2626', borderStyle: 'double' },
+    frame_marathon:  { label: 'Марафон',    color: '#1d4ed8' },
+    frame_phantom:   { label: 'Привид',     color: '#e2e8f0', borderStyle: 'dashed' },
+    frame_ukraine:   { label: 'Україна',    color: '#005BBB' },
+    frame_sunflower: { label: 'Соняшник',   color: '#fbbf24' },
+    frame_moon:      { label: 'Місяць',     color: '#818cf8' },
+    frame_rainbow:   { label: 'Веселка',    color: '#f43f5e' },
+    frame_butterfly: { label: 'Метелик',    color: '#c084fc' },
+    frame_sparkle:   { label: 'Іскра',      color: '#fb7185' },
+    frame_perfect:   { label: 'Ідеальна',   color: '#6366f1' },
+    frame_elite:     { label: 'Еліта',      color: '#a855f7', borderRadius: '3px' },
+    frame_trophy:    { label: 'Кубок',      color: '#f59e0b' },
+    frame_champion:  { label: 'Чемпіон',    color: '#fbbf24', borderStyle: 'double' },
+    frame_paint:     { label: 'Арт',        color: '#f472b6' },
+    frame_check:     { label: 'Успіх',      color: '#16a34a' },
+    frame_leaf:      { label: 'Листок',     color: '#16a34a' },
+    frame_fashion:   { label: 'Стиль',      color: '#db2777', borderRadius: '16px' },
+    frame_build:     { label: 'Архітектор', color: '#1e40af' },
 };
 
 const RANDOM_QUOTES = [
@@ -74,18 +112,19 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
         selectedFrame:      profile?.selectedFrame      || '',
         selectedBackground: profile?.selectedBackground || '',
         selectedFont:       profile?.selectedFont       || '',
+        selectedBadgeId:    profile?.selectedBadgeId    || '',
         quote:              profile?.quote              || '',
     });
     const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const isFirstRender = useRef(true);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const unlockedFrames      = [...new Set(badges.map((b) => b.unlocksFrame).filter(Boolean))]      as string[];
     const unlockedBackgrounds = [...new Set(badges.map((b) => b.unlocksBackground).filter(Boolean))] as string[];
     const unlockedFonts       = [...new Set(badges.map((b) => b.unlocksFont).filter(Boolean))]       as string[];
 
     useEffect(() => {
         if (isFirstRender.current) { isFirstRender.current = false; return; }
-
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
         debounceTimer.current = setTimeout(async () => {
             setStatus('saving');
@@ -94,20 +133,14 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
                     selectedFrame:      selected.selectedFrame      || undefined,
                     selectedBackground: selected.selectedBackground || undefined,
                     selectedFont:       selected.selectedFont       || undefined,
+                    selectedBadgeId:    selected.selectedBadgeId    || undefined,
                     quote:              selected.quote              || undefined,
                 });
                 setStatus('saved');
                 setTimeout(() => setStatus('idle'), 2000);
-            } catch {
-                setStatus('idle');
-            }
+            } catch { setStatus('idle'); }
         }, 600);
     }, [selected, onSave]);
-
-    const handleRandomQuote = () => {
-        const available = RANDOM_QUOTES.filter((q) => q !== selected.quote);
-        setSelected((p) => ({ ...p, quote: available[Math.floor(Math.random() * available.length)] }));
-    };
 
     if (badges.length === 0) {
         return (
@@ -134,24 +167,15 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
                                 key={bg}
                                 onClick={() => setSelected((p) => ({ ...p, selectedBackground: bg }))}
                                 title={bg}
-                                className={`w-9 h-9 rounded-full border-2 transition hover:scale-110 ${
-                                    selected.selectedBackground === bg
-                                        ? 'border-black scale-110 shadow-md'
-                                        : 'border-gray-200'
-                                }`}
+                                className={`w-9 h-9 rounded-full border-2 transition hover:scale-110 ${selected.selectedBackground === bg ? 'border-black scale-110 shadow-md' : 'border-gray-200'}`}
                                 style={{
-                                    backgroundColor: bg.startsWith('#') ? bg : undefined,
-                                    backgroundImage: bg.startsWith('http') ? `url(${bg})` : undefined,
-                                    backgroundSize: 'cover',
+                                    background: bg.startsWith('#') ? bg : bg.startsWith('linear') ? bg : undefined,
+                                    backgroundColor: !bg.startsWith('linear') && !bg.startsWith('http') ? bg : undefined,
                                 }}
                             />
                         ))}
                         {selected.selectedBackground && (
-                            <button
-                                onClick={() => setSelected((p) => ({ ...p, selectedBackground: '' }))}
-                                className="w-9 h-9 rounded-full border-2 border-dashed border-gray-300 text-gray-400 text-xs hover:border-red-400 hover:text-red-400 transition"
-                                title="Скинути"
-                            >✕</button>
+                            <button onClick={() => setSelected((p) => ({ ...p, selectedBackground: '' }))} className="w-9 h-9 rounded-full border-2 border-dashed border-gray-300 text-gray-400 text-xs hover:border-red-400 hover:text-red-400 transition" title="Скинути">✕</button>
                         )}
                     </div>
                 </div>
@@ -162,27 +186,30 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
                     <p className="text-xs font-bold text-gray-500 uppercase mb-2">Рамка аватара</p>
                     <div className="grid grid-cols-4 gap-2">
                         {unlockedFrames.map((frame) => {
-                            const frameCfg = FRAME_CONFIG[frame] || { label: frame, preview: '○' };
+                            const cfg = FRAME_CONFIG[frame] || { label: frame, color: '#9ca3af' };
+                            const isSelected = selected.selectedFrame === frame;
                             return (
                                 <button
                                     key={frame}
                                     onClick={() => setSelected((p) => ({ ...p, selectedFrame: frame }))}
-                                    className={`p-2 rounded-lg border text-center transition ${
-                                        selected.selectedFrame === frame
-                                            ? 'border-black bg-black text-white'
-                                            : 'border-gray-200 hover:border-black bg-white'
-                                    }`}
+                                    className={`p-2 rounded-lg border text-center transition ${isSelected ? 'border-black bg-gray-900' : 'border-gray-200 hover:border-gray-400 bg-white'}`}
                                 >
-                                    <span className="text-lg block">{frameCfg.preview}</span>
-                                    <span className="text-xs">{frameCfg.label}</span>
+                                    <div className="flex items-center justify-center mb-1">
+                                        <div
+                                            className="w-7 h-7 rounded-full bg-gray-300"
+                                            style={{
+                                                border: `3px ${cfg.borderStyle || 'solid'} ${cfg.color}`,
+                                                borderRadius: cfg.borderRadius || '50%',
+                                                boxShadow: isSelected ? `0 0 8px ${cfg.color}` : 'none',
+                                            }}
+                                        />
+                                    </div>
+                                    <span className={`text-xs ${isSelected ? 'text-white' : 'text-gray-600'}`}>{cfg.label}</span>
                                 </button>
                             );
                         })}
                         {selected.selectedFrame && (
-                            <button
-                                onClick={() => setSelected((p) => ({ ...p, selectedFrame: '' }))}
-                                className="p-2 rounded-lg border border-dashed border-gray-300 text-gray-400 text-xs hover:border-red-400 hover:text-red-400 transition text-center"
-                            >
+                            <button onClick={() => setSelected((p) => ({ ...p, selectedFrame: '' }))} className="p-2 rounded-lg border border-dashed border-gray-300 text-gray-400 text-xs hover:border-red-400 hover:text-red-400 transition text-center">
                                 <span className="text-lg block">✕</span>
                                 <span>Скинути</span>
                             </button>
@@ -197,31 +224,38 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
                     <div className="flex flex-col gap-2">
                         {unlockedFonts.map((font) => {
                             const fontCfg = FONT_CONFIG[font] || { label: font, preview: font, style: {} };
+                            const isSelected = selected.selectedFont === font;
                             return (
-                                <button
-                                    key={font}
-                                    onClick={() => setSelected((p) => ({ ...p, selectedFont: font }))}
-                                    className={`px-4 py-2 rounded-lg border text-left transition ${
-                                        selected.selectedFont === font
-                                            ? 'border-black bg-black text-white'
-                                            : 'border-gray-200 hover:border-black bg-white'
-                                    }`}
-                                >
-                                    <span className="text-xs font-bold uppercase tracking-wider block mb-0.5">
-                                        {fontCfg.label}
-                                    </span>
-                                    <span
-                                        style={selected.selectedFont === font ? { ...fontCfg.style, color: '#fff' } : fontCfg.style}
-                                        className="text-sm"
-                                    >
-                                        {fontCfg.preview}
-                                    </span>
+                                <button key={font} onClick={() => setSelected((p) => ({ ...p, selectedFont: font }))} className={`px-4 py-2 rounded-lg border text-left transition ${isSelected ? 'border-black bg-black text-white' : 'border-gray-200 hover:border-black bg-white'}`}>
+                                    <span className="text-xs font-bold uppercase tracking-wider block mb-0.5">{fontCfg.label}</span>
+                                    <span style={isSelected ? { ...fontCfg.style, color: '#fff' } : fontCfg.style} className="text-sm">{fontCfg.preview}</span>
                                 </button>
                             );
                         })}
                     </div>
                 </div>
             )}
+
+            <div>
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Головне досягнення на картці</p>
+                <div className="grid grid-cols-3 gap-2">
+                    {badges.map((badge) => {
+                        const badgeId = badge.key;
+                        const isSelected = selected.selectedBadgeId === badgeId;
+                        return (
+                            <button
+                                key={badge.key}
+                                onClick={() => setSelected((p) => ({ ...p, selectedBadgeId: isSelected ? '' : badgeId }))}
+                                className={`p-2 rounded-lg border text-center transition ${isSelected ? 'border-black bg-gray-900' : 'border-gray-200 hover:border-gray-400 bg-white'}`}
+                                title={badge.description}
+                            >
+                                <span className="text-xl block">{badge.icon}</span>
+                                <span className={`text-xs truncate block ${isSelected ? 'text-white' : 'text-gray-600'}`}>{badge.name}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
 
             <div>
                 <p className="text-xs font-bold text-gray-500 uppercase mb-2">Цитата на картці</p>
@@ -234,10 +268,10 @@ export default function BadgeCustomizer({ badges, profile, onSave }: Props) {
                         rows={2}
                         className="w-full border border-gray-300 rounded-lg p-3 pr-24 text-sm focus:ring-2 focus:ring-black outline-none resize-none"
                     />
-                    <button
-                        onClick={handleRandomQuote}
-                        className="absolute right-2 top-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded transition"
-                    >
+                    <button onClick={() => {
+                        const available = RANDOM_QUOTES.filter((q) => q !== selected.quote);
+                        setSelected((p) => ({ ...p, quote: available[Math.floor(Math.random() * available.length)] }));
+                    }} className="absolute right-2 top-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded transition">
                         🎲 Випадкова
                     </button>
                 </div>

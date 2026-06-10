@@ -56,4 +56,46 @@ export class AuthService {
     await this.gamification.grantBadgeSystem(user.id, 'welcome');
     return this.login(user);
   }
+
+  async validateOAuthUser(data: {
+    email: string;
+    name: string;
+    avatar?: string;
+    provider: string;
+    socialId: string;
+  }) {
+    let user = await this.prisma.user.findFirst({
+      where: { provider: data.provider, socialId: data.socialId },
+    });
+
+    if (!user && data.email) {
+      user = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
+      if (user) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { provider: data.provider, socialId: data.socialId },
+        });
+      }
+    }
+
+    if (!user) {
+      const avatarSeed = encodeURIComponent(data.name || data.email || 'user');
+      user = await this.prisma.user.create({
+        data: {
+          email: data.email,
+          name: data.name,
+          avatar:
+            data.avatar ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
+          provider: data.provider,
+          socialId: data.socialId,
+        },
+      });
+      await this.gamification.grantBadgeSystem(user.id, 'welcome');
+    }
+
+    return user;
+  }
 }
