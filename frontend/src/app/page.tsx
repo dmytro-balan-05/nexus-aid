@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DonateButton from '@/components/DonateButton';
 import Leaderboard from '@/components/Leaderboard';
 import QuickDonateButton from '@/components/QuickDonateButton';
+import UrgentBadge from '@/components/UrgentBadge';
 
 interface Campaign {
     id: string;
@@ -110,7 +111,7 @@ export default function HomePage() {
                                             <div className="relative">
                                                 <img src={campaign.images?.[0] || 'https://placehold.co/400x200/png?text=NexusAid'} alt={campaign.title} className="w-full h-36 object-cover" />
                                                 <div className="absolute top-2 left-2 flex gap-1">
-                                                    <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">⚡ ТЕРМІНОВО</span>
+                                                    <UrgentBadge />
                                                     <span className="bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">{CATEGORY_LABELS[category] || category}</span>
                                                 </div>
                                             </div>

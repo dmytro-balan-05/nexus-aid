@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import CreateCampaignButton from '@/components/CreateCampaignButton';
 import SearchFilter from '@/components/SearchFilter';
-
+import UrgentBadge from '@/components/UrgentBadge';
 const DEFAULT_IMAGE = 'https://placehold.co/600x400/png?text=NexusAid';
 const BACKEND_URL = 'https://nexus-aid-production.up.railway.app';
 
@@ -113,9 +113,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
                                         />
                                         <div className="absolute top-2 left-2 flex gap-1 flex-wrap">
                                             {isUrgent && (
-                                                <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">
-                                                    ⚡ ТЕРМІНОВО
-                                                </span>
+                                                <UrgentBadge />
                                             )}
                                             <span className="bg-black/70 text-white text-xs font-bold px-2 py-1 rounded uppercase shadow-sm">
                                                 {CATEGORY_LABELS[campaign.category] || campaign.category}
