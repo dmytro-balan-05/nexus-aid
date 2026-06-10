@@ -20,15 +20,61 @@ export default function VolonteerChat() {
     const [isOpen, setIsOpen] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const loadChat = async () => {
+        try {
+            const res = await fetch('/api/chat/me', { credentials: 'include' });
+            const data = await res.json();
+            setChat(data);
+        } catch {}
+    };
+
+    const loadUnread = async () => {
+        try {
+            const res = await fetch('/api/chat/me/unread', { credentials: 'include' });
+            const data = await res.json();
+            setUnreadCount(typeof data === 'number' ? data : 0);
+        } catch {}
+    };
+
+    const markAsRead = async () => {
+        try {
+            await fetch('/api/chat/me/read', { method: 'POST', credentials: 'include' });
+            setUnreadCount(0);
+        } catch {}
+    };
 
     useEffect(() => {
-        if (isOpen && !chat) {
-            fetch('/api/chat/me', { credentials: 'include' })
-                .then((r) => r.json())
-                .then(setChat)
-                .catch(() => {});
+        loadUnread();
+        const unreadInterval = setInterval(loadUnread, 30000);
+        return () => clearInterval(unreadInterval);
+    }, []);
+
+    useEffect(() => {
+        if (isOpen) {
+            loadChat();
+            markAsRead();
+            pollingRef.current = setInterval(() => {
+                loadChat();
+                markAsRead();
+            }, 5000);
+        } else {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+            loadUnread();
         }
+
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+        };
     }, [isOpen]);
 
     useEffect(() => {
@@ -65,9 +111,14 @@ export default function VolonteerChat() {
                 </div>
                 <button
                     onClick={() => setIsOpen((p) => !p)}
-                    className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition"
+                    className="relative bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition"
                 >
                     {isOpen ? 'Згорнути' : 'Відкрити чат'}
+                    {!isOpen && unreadCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
                 </button>
             </div>
 

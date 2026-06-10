@@ -67,6 +67,66 @@ const STATUS_CONFIG = {
     rejected: { label: 'Відхилено',    color: 'bg-red-100 text-red-800',      icon: '❌' },
 };
 
+const FRAME_COLORS: Record<string, string> = {
+    frame_star:      '#facc15',
+    frame_diamond:   '#22d3ee',
+    frame_crown:     '#f59e0b',
+    frame_shield:    '#3b82f6',
+    frame_drone:     '#6366f1',
+    frame_wings:     '#8b5cf6',
+    frame_heart:     '#ec4899',
+    frame_medic:     '#ef4444',
+    frame_hands:     '#22c55e',
+    frame_trophy:    '#f59e0b',
+    frame_champion:  '#fbbf24',
+    frame_elite:     '#a855f7',
+    frame_moon:      '#818cf8',
+    frame_rainbow:   '#f43f5e',
+    frame_butterfly: '#c084fc',
+    frame_sparkle:   '#fb7185',
+    frame_perfect:   '#6366f1',
+    frame_loyal:     '#dc2626',
+    frame_marathon:  '#1d4ed8',
+    frame_phantom:   '#e2e8f0',
+    frame_coin:      '#fbbf24',
+    frame_fire:      '#f97316',
+    frame_explosion: '#ef4444',
+    frame_stars:     '#a3e635',
+    frame_medal:     '#d97706',
+    frame_hero:      '#7c3aed',
+    frame_gold:      '#ca8a04',
+    frame_cross:     '#f87171',
+    frame_ambulance: '#dc2626',
+    frame_pillar:    '#78716c',
+    frame_leaf:      '#16a34a',
+    frame_megaphone: '#9333ea',
+    frame_funded:    '#15803d',
+    frame_clover:    '#4ade80',
+    frame_mirror:    '#94a3b8',
+    frame_week:      '#fb923c',
+    frame_podium:    '#eab308',
+    frame_secret:    '#7c3aed',
+    frame_emergency: '#dc2626',
+    frame_hourglass: '#78716c',
+    frame_seed:      '#166534',
+    frame_fashion:   '#db2777',
+    frame_build:     '#1e40af',
+    frame_paint:     '#f472b6',
+    frame_check:     '#16a34a',
+    frame_ukraine:   '#005BBB',
+    frame_sunflower: '#fbbf24',
+};
+
+const FRAME_SHADOWS: Record<string, string> = {
+    frame_crown:    '0 0 15px rgba(245,158,11,0.6)',
+    frame_diamond:  '0 0 15px rgba(34,211,238,0.6)',
+    frame_elite:    '0 0 20px rgba(168,85,247,0.8)',
+    frame_sparkle:  '0 0 20px rgba(251,113,133,0.7)',
+    frame_champion: '0 0 15px rgba(251,191,36,0.7)',
+    frame_phantom:  '0 0 20px rgba(255,255,255,0.3)',
+    frame_ukraine:  '0 0 15px rgba(0,91,187,0.6)',
+};
+
 export default function ProfilePage() {
     const { user, isLoading, logout, refreshProfile } = useAuth();
     const router = useRouter();
@@ -120,7 +180,8 @@ export default function ProfilePage() {
 
     const handleUpdate = async () => {
         try {
-            await api.patch('/users/me', { name: newName, avatar: newAvatar });
+            const avatarToSave = newAvatar.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newName || user?.name || 'user')}`;
+            await api.patch('/users/me', { name: newName, avatar: avatarToSave });
             await refreshProfile();
             setIsEditing(false);
             setMessage('Профіль успішно оновлено!');
@@ -165,7 +226,6 @@ export default function ProfilePage() {
             });
 
             if (!res.ok) throw new Error(await res.text());
-
             const result = await res.json();
             setVerification(result);
             setShowVerificationForm(false);
@@ -206,23 +266,29 @@ export default function ProfilePage() {
         );
     }
 
-    const avatarUrl = user.avatar
-        ? user.avatar
-        : `https://ui-avatars.com/api/?name=${user.name || 'User'}&background=random&size=128`;
+    const avatarUrl = user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name || user.email)}`;
+    const selectedFrame = gamification.profile?.selectedFrame || '';
+    const selectedBackground = gamification.profile?.selectedBackground;
 
     return (
         <div className="min-h-screen bg-gray-50 text-black">
             <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
-                {/* Шапка профілю */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="h-24 bg-gradient-to-r from-gray-900 to-gray-700" />
+                    <div
+                        className="h-24"
+                        style={{ background: selectedBackground || 'linear-gradient(to right, #111827, #374151)' }}
+                    />
                     <div className="px-6 pb-6">
                         <div className="flex items-end justify-between -mt-12 mb-4">
                             <img
                                 src={avatarUrl}
                                 alt="Avatar"
-                                className="w-20 h-20 rounded-2xl border-4 border-white object-cover shadow-md"
+                                className="w-20 h-20 rounded-2xl object-cover"
+                                style={{
+                                    border: `4px solid ${FRAME_COLORS[selectedFrame] || '#ffffff'}`,
+                                    boxShadow: FRAME_SHADOWS[selectedFrame] || '0 4px 6px rgba(0,0,0,0.1)',
+                                }}
                             />
                             <button
                                 onClick={logout}
@@ -248,6 +314,9 @@ export default function ProfilePage() {
                             )}
                         </div>
                         <p className="text-gray-400 text-sm">{user.email}</p>
+                        {gamification.profile?.quote && (
+                            <p className="text-gray-500 text-sm italic mt-1">"{gamification.profile.quote}"</p>
+                        )}
 
                         {gamification.profile && (
                             <div className="grid grid-cols-2 gap-3 mt-4">
@@ -270,7 +339,6 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* Редагування */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-4">Редагування профілю</h2>
                     {isEditing ? (
@@ -290,8 +358,9 @@ export default function ProfilePage() {
                                     value={newAvatar}
                                     onChange={(e) => setNewAvatar(e.target.value)}
                                     className="border border-gray-300 p-2.5 rounded-xl w-full focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                    placeholder="https://example.com/image.png"
+                                    placeholder="https://example.com/image.png (залиш пустим для авто)"
                                 />
+                                <p className="text-xs text-gray-400 mt-1">Залиш пустим — згенерується автоматично</p>
                             </div>
                             <div className="flex gap-2 pt-1">
                                 <button onClick={handleUpdate} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition">
@@ -315,17 +384,13 @@ export default function ProfilePage() {
                     )}
                 </div>
 
-                {/* Верифікація */}
                 {user.role !== 'admin' && user.role !== 'volonteer' && verificationLoaded && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <h2 className="text-lg font-bold text-gray-900 mb-1">🔐 Верифікація волонтера</h2>
                         <p className="text-sm text-gray-400 mb-4">Пройдіть верифікацію щоб створювати збори</p>
 
                         {!verification && !showVerificationForm && (
-                            <button
-                                onClick={() => setShowVerificationForm(true)}
-                                className="bg-black text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-800 transition"
-                            >
+                            <button onClick={() => setShowVerificationForm(true)} className="bg-black text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-800 transition">
                                 Подати заявку
                             </button>
                         )}
@@ -334,56 +399,25 @@ export default function ProfilePage() {
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Про себе *</label>
-                                    <textarea
-                                        rows={3}
-                                        value={verificationForm.about}
-                                        onChange={(e) => setVerificationForm((p) => ({ ...p, about: e.target.value }))}
-                                        className="border border-gray-300 p-2.5 rounded-xl w-full focus:ring-2 focus:ring-black outline-none text-sm resize-none"
-                                        placeholder="Розкажіть хто ви і чим займаєтесь..."
-                                    />
+                                    <textarea rows={3} value={verificationForm.about} onChange={(e) => setVerificationForm((p) => ({ ...p, about: e.target.value }))} className="border border-gray-300 p-2.5 rounded-xl w-full focus:ring-2 focus:ring-black outline-none text-sm resize-none" placeholder="Розкажіть хто ви і чим займаєтесь..." />
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Досвід волонтерства *</label>
-                                    <textarea
-                                        rows={3}
-                                        value={verificationForm.experience}
-                                        onChange={(e) => setVerificationForm((p) => ({ ...p, experience: e.target.value }))}
-                                        className="border border-gray-300 p-2.5 rounded-xl w-full focus:ring-2 focus:ring-black outline-none text-sm resize-none"
-                                        placeholder="Опишіть ваш досвід..."
-                                    />
+                                    <textarea rows={3} value={verificationForm.experience} onChange={(e) => setVerificationForm((p) => ({ ...p, experience: e.target.value }))} className="border border-gray-300 p-2.5 rounded-xl w-full focus:ring-2 focus:ring-black outline-none text-sm resize-none" placeholder="Опишіть ваш досвід..." />
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Соцмережі</label>
-                                    <input
-                                        value={verificationForm.socialLinks}
-                                        onChange={(e) => setVerificationForm((p) => ({ ...p, socialLinks: e.target.value }))}
-                                        className="border border-gray-300 p-2.5 rounded-xl w-full focus:ring-2 focus:ring-black outline-none text-sm"
-                                        placeholder="Instagram, Facebook, Telegram..."
-                                    />
+                                    <input value={verificationForm.socialLinks} onChange={(e) => setVerificationForm((p) => ({ ...p, socialLinks: e.target.value }))} className="border border-gray-300 p-2.5 rounded-xl w-full focus:ring-2 focus:ring-black outline-none text-sm" placeholder="Instagram, Facebook, Telegram..." />
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Документи</label>
-                                    <input
-                                        type="file"
-                                        multiple
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                                            if (e.target.files) setVerificationFiles(Array.from(e.target.files));
-                                        }}
-                                        className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:bg-black file:text-white file:text-xs cursor-pointer"
-                                    />
+                                    <input type="file" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => { if (e.target.files) setVerificationFiles(Array.from(e.target.files)); }} className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:bg-black file:text-white file:text-xs cursor-pointer" />
                                 </div>
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={handleVerificationSubmit}
-                                        disabled={isSubmittingVerification}
-                                        className="bg-black text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition"
-                                    >
+                                    <button onClick={handleVerificationSubmit} disabled={isSubmittingVerification} className="bg-black text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition">
                                         {isSubmittingVerification ? 'Відправка...' : 'Відправити заявку'}
                                     </button>
-                                    <button
-                                        onClick={() => setShowVerificationForm(false)}
-                                        className="border border-gray-300 px-5 py-2 rounded-xl text-sm font-bold hover:border-black transition"
-                                    >
+                                    <button onClick={() => setShowVerificationForm(false)} className="border border-gray-300 px-5 py-2 rounded-xl text-sm font-bold hover:border-black transition">
                                         Скасувати
                                     </button>
                                 </div>
@@ -396,9 +430,7 @@ export default function ProfilePage() {
                                     <span className={`text-xs font-bold px-3 py-1 rounded-full ${STATUS_CONFIG[verification.status].color}`}>
                                         {STATUS_CONFIG[verification.status].icon} {STATUS_CONFIG[verification.status].label}
                                     </span>
-                                    <span className="text-xs text-gray-400">
-                                        {new Date(verification.createdAt).toLocaleDateString('uk-UA')}
-                                    </span>
+                                    <span className="text-xs text-gray-400">{new Date(verification.createdAt).toLocaleDateString('uk-UA')}</span>
                                 </div>
 
                                 {(verification.messages?.length ?? 0) > 0 && (
@@ -412,11 +444,7 @@ export default function ProfilePage() {
                                                     <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold flex-shrink-0">
                                                         {msg.sender.name?.[0]?.toUpperCase() || 'U'}
                                                     </div>
-                                                    <div className={`max-w-xs rounded-xl px-3 py-2 text-sm ${
-                                                        msg.isAdmin
-                                                            ? 'bg-gray-100 text-gray-900'
-                                                            : 'bg-black text-white'
-                                                    }`}>
+                                                    <div className={`max-w-xs rounded-xl px-3 py-2 text-sm ${msg.isAdmin ? 'bg-gray-100 text-gray-900' : 'bg-black text-white'}`}>
                                                         {msg.text}
                                                         <div className={`text-xs mt-1 ${msg.isAdmin ? 'text-gray-400' : 'text-gray-300'}`}>
                                                             {new Date(msg.createdAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
@@ -431,28 +459,13 @@ export default function ProfilePage() {
 
                                 {verification.status === 'pending' && (
                                     <div className="flex gap-2">
-                                        <input
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                                            placeholder="Написати адміну..."
-                                            className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none"
-                                        />
-                                        <button
-                                            onClick={handleSendMessage}
-                                            disabled={isSendingMessage || !newMessage.trim()}
-                                            className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition"
-                                        >
-                                            →
-                                        </button>
+                                        <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} placeholder="Написати адміну..." className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" />
+                                        <button onClick={handleSendMessage} disabled={isSendingMessage || !newMessage.trim()} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition">→</button>
                                     </div>
                                 )}
 
                                 {verification.status === 'rejected' && (
-                                    <button
-                                        onClick={() => { setShowVerificationForm(true); setVerification(null); }}
-                                        className="mt-2 text-sm text-blue-600 font-bold hover:text-blue-800 transition"
-                                    >
+                                    <button onClick={() => { setShowVerificationForm(true); setVerification(null); }} className="mt-2 text-sm text-blue-600 font-bold hover:text-blue-800 transition">
                                         Подати нову заявку →
                                     </button>
                                 )}
@@ -460,8 +473,9 @@ export default function ProfilePage() {
                         )}
                     </div>
                 )}
+
                 {user.role === 'volonteer' && <VolonteerChat />}
-                {/* Досягнення */}
+
                 {gamification.badges.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <h2 className="text-lg font-bold text-gray-900 mb-4">🏆 Мої досягнення</h2>
@@ -479,25 +493,14 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* Кастомізація + Картка */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <h2 className="text-lg font-bold text-gray-900 mb-4">🎨 Кастомізація картки</h2>
-                        <BadgeCustomizer
-                            badges={gamification.badges}
-                            profile={gamification.profile}
-                            onSave={handleCustomizationSave}
-                        />
+                        <BadgeCustomizer badges={gamification.badges} profile={gamification.profile} onSave={handleCustomizationSave} />
                     </div>
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <h2 className="text-lg font-bold text-gray-900 mb-4">🪪 Картка донора</h2>
-                        <DonorCard
-                            ref={cardRef}
-                            userName={user.name || user.email}
-                            avatarUrl={avatarUrl}
-                            profile={gamification.profile}
-                            badges={gamification.badges}
-                        />
+                        <DonorCard ref={cardRef} userName={user.name || user.email} avatarUrl={avatarUrl} profile={gamification.profile} badges={gamification.badges} />
                     </div>
                 </div>
             </div>

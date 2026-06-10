@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 
 interface LeaderboardEntry {
     level: string;
@@ -26,7 +27,7 @@ export default function Leaderboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-    const fetch_ = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await fetch('/api/gamification/leaderboard');
@@ -38,10 +39,10 @@ export default function Leaderboard() {
     }, []);
 
     useEffect(() => {
-        fetch_();
-        const interval = setInterval(fetch_, 60 * 1000);
+        fetchData();
+        const interval = setInterval(fetchData, 60 * 1000);
         return () => clearInterval(interval);
-    }, [fetch_]);
+    }, [fetchData]);
 
     const sorted = tab === 'amount'
         ? [...data].sort((a, b) => b.totalAmount - a.totalAmount)
@@ -55,7 +56,7 @@ export default function Leaderboard() {
                     <p className="text-gray-400 text-sm">Найактивніші донори платформи</p>
                 </div>
                 <button
-                    onClick={fetch_}
+                    onClick={fetchData}
                     disabled={isLoading}
                     className="text-xs text-gray-400 hover:text-black border border-gray-200 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
                 >
@@ -91,7 +92,11 @@ export default function Leaderboard() {
             ) : (
                 <div className="space-y-2">
                     {sorted.slice(0, 10).map((entry, i) => (
-                        <div key={entry.user.id} className="flex items-center gap-4 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                        <Link
+                            key={entry.user.id}
+                            href={`/profile/${entry.user.id}`}
+                            className="flex items-center gap-4 bg-gray-50 rounded-xl p-3 border border-gray-100 hover:border-gray-300 hover:bg-gray-100 transition cursor-pointer"
+                        >
                             <span className={`text-xl font-black w-8 text-center ${
                                 i === 0 ? 'text-yellow-500' :
                                     i === 1 ? 'text-gray-400' :
@@ -131,7 +136,7 @@ export default function Leaderboard() {
                                     </>
                                 )}
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             )}
