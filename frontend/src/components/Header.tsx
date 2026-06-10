@@ -11,6 +11,7 @@ export default function Header() {
     const { user, logout } = useAuth();
     const { isDark, toggle } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const pathname = usePathname();
     const isHome = pathname === '/';
@@ -64,12 +65,39 @@ export default function Header() {
                         </button>
 
                         {user?.role === 'volonteer' && (
-                            <div className="relative w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)]">
-                                🔔
-                                {unreadCount > 0 && (
-                                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications((p) => !p)}
+                                    className="relative w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                                >
+                                    🔔
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+                                    )}
+                                </button>
+                                {showNotifications && (
+                                    <div className="absolute right-0 top-12 w-72 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-xl z-50 overflow-hidden">
+                                        <div className="px-4 py-3 border-b border-[var(--border)]">
+                                            <p className="font-bold text-sm text-[var(--text-primary)]">🔔 Сповіщення</p>
+                                        </div>
+                                        {unreadCount > 0 ? (
+                                            <Link
+                                                href="/profile"
+                                                onClick={() => setShowNotifications(false)}
+                                                className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-secondary)] transition"
+                                            >
+                                                <span className="text-xl">💬</span>
+                                                <div>
+                                                    <p className="text-sm font-bold text-[var(--text-primary)]">Нові повідомлення</p>
+                                                    <p className="text-xs text-[var(--text-secondary)]">{unreadCount} непрочитаних від адміна</p>
+                                                </div>
+                                            </Link>
+                                        ) : (
+                                            <div className="px-4 py-6 text-center text-sm text-[var(--text-secondary)]">Немає нових сповіщень</div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}

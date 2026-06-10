@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import Header from '@/components/Header';
 import Toast from '@/components/Toast';
+import Footer from '@/components/Footer';
 
 export const metadata = {
     title: 'Nexus Aid',
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <main className="min-h-screen bg-[var(--bg-secondary)]">
                         {children}
                     </main>
+                    <Footer />
                     <Toast />
                 </AuthProvider>
             </NotificationProvider>

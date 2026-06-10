@@ -12,10 +12,10 @@ interface LeaderboardEntry {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-    bronze:   'text-orange-600',
-    silver:   'text-gray-500',
+    bronze:   'text-orange-500',
+    silver:   'text-gray-400',
     gold:     'text-yellow-500',
-    platinum: 'text-purple-600',
+    platinum: 'text-purple-500',
 };
 
 const MEDAL = (i: number) =>
@@ -49,59 +49,59 @@ export default function Leaderboard() {
         : [...data].sort((a, b) => b.badgeCount - a.badgeCount);
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border)] p-6">
             <div className="flex items-start justify-between mb-2">
                 <div>
-                    <h2 className="text-2xl font-extrabold text-gray-900">🏆 Скорборд</h2>
-                    <p className="text-gray-400 text-sm">Найактивніші донори платформи</p>
+                    <h2 className="text-2xl font-extrabold text-[var(--text-primary)]">🏆 Скорборд</h2>
+                    <p className="text-[var(--text-secondary)] text-sm">Найактивніші донори платформи</p>
                 </div>
                 <button
                     onClick={fetchData}
                     disabled={isLoading}
-                    className="text-xs text-gray-400 hover:text-black border border-gray-200 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                    className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] px-3 py-1.5 rounded-lg transition disabled:opacity-50"
                 >
                     {isLoading ? '...' : '↻ Оновити'}
                 </button>
             </div>
 
             {lastUpdated && (
-                <p className="text-xs text-gray-300 mb-4">
+                <p className="text-xs text-[var(--text-secondary)] mb-4 opacity-50">
                     Оновлено: {lastUpdated.toLocaleTimeString('uk-UA')}
                 </p>
             )}
 
-            <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-fit">
+            <div className="flex gap-1 mb-5 bg-[var(--bg-secondary)] rounded-xl p-1 w-fit">
                 <button
                     onClick={() => setTab('amount')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${tab === 'amount' ? 'bg-white shadow text-black' : 'text-gray-500'}`}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${tab === 'amount' ? 'bg-[var(--bg-card)] shadow text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
                 >
                     💰 По сумі
                 </button>
                 <button
                     onClick={() => setTab('badges')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${tab === 'badges' ? 'bg-white shadow text-black' : 'text-gray-500'}`}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${tab === 'badges' ? 'bg-[var(--bg-card)] shadow text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
                 >
                     🏅 Бейджхантери
                 </button>
             </div>
 
             {isLoading && data.length === 0 ? (
-                <div className="py-10 text-center text-gray-300 text-sm">Завантаження...</div>
+                <div className="py-10 text-center text-[var(--text-secondary)] text-sm">Завантаження...</div>
             ) : sorted.length === 0 ? (
-                <div className="py-10 text-center text-gray-300 text-sm">Поки немає даних</div>
+                <div className="py-10 text-center text-[var(--text-secondary)] text-sm">Поки немає даних</div>
             ) : (
                 <div className="space-y-2">
                     {sorted.slice(0, 10).map((entry, i) => (
                         <Link
                             key={entry.user.id}
                             href={`/profile/${entry.user.id}`}
-                            className="flex items-center gap-4 bg-gray-50 rounded-xl p-3 border border-gray-100 hover:border-gray-300 hover:bg-gray-100 transition cursor-pointer"
+                            className="flex items-center gap-4 bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border)] hover:border-[var(--text-secondary)] transition cursor-pointer"
                         >
                             <span className={`text-xl font-black w-8 text-center ${
                                 i === 0 ? 'text-yellow-500' :
                                     i === 1 ? 'text-gray-400' :
                                         i === 2 ? 'text-orange-400' :
-                                            'text-gray-300'
+                                            'text-[var(--text-secondary)]'
                             }`}>
                                 {MEDAL(i)}
                             </span>
@@ -117,8 +117,8 @@ export default function Leaderboard() {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <div className="font-bold text-sm text-gray-900 truncate">{entry.user.name || 'Анонім'}</div>
-                                <div className={`text-xs font-bold ${LEVEL_COLORS[entry.level] || 'text-gray-400'}`}>
+                                <div className="font-bold text-sm text-[var(--text-primary)] truncate">{entry.user.name || 'Анонім'}</div>
+                                <div className={`text-xs font-bold ${LEVEL_COLORS[entry.level] || 'text-[var(--text-secondary)]'}`}>
                                     {entry.level}
                                 </div>
                             </div>
@@ -126,13 +126,13 @@ export default function Leaderboard() {
                             <div className="text-right flex-shrink-0">
                                 {tab === 'amount' ? (
                                     <>
-                                        <div className="font-black text-gray-900 text-sm">{entry.totalAmount.toLocaleString()} ₴</div>
-                                        <div className="text-xs text-gray-400">{entry.donationCount} донатів</div>
+                                        <div className="font-black text-[var(--text-primary)] text-sm">{entry.totalAmount.toLocaleString()} ₴</div>
+                                        <div className="text-xs text-[var(--text-secondary)]">{entry.donationCount} донатів</div>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="font-black text-gray-900 text-sm">{entry.badgeCount} 🏅</div>
-                                        <div className="text-xs text-gray-400">бейджів</div>
+                                        <div className="font-black text-[var(--text-primary)] text-sm">{entry.badgeCount} 🏅</div>
+                                        <div className="text-xs text-[var(--text-secondary)]">бейджів</div>
                                     </>
                                 )}
                             </div>
