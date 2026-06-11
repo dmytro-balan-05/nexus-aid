@@ -4,9 +4,12 @@ import {
   Get,
   Body,
   Param,
+  Query,
   Request,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { DonationsService } from './donations.service';
 import { InitiateDonationDto } from './dto/initiate-donation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -34,6 +37,28 @@ export class DonationsController {
   @Post('verify-return')
   verifyReturn(@Body() body: Record<string, string>) {
     return this.donationsService.verifyReturn(body);
+  }
+
+  @Get('handle-return')
+  async handleReturn(
+    @Query() query: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      'https://nexus-aid-frontend-production.up.railway.app';
+    try {
+      const result = await this.donationsService.verifyReturn(query);
+      const success = result.success || result.alreadyProcessed;
+      return res.redirect(
+        `${frontendUrl}/donations/result?success=${success}&status=${query.transactionStatus || ''}`,
+      );
+    } catch (e: any) {
+      console.error('[HANDLE RETURN ERROR]', e?.message);
+      return res.redirect(
+        `${frontendUrl}/donations/result?success=false&status=error`,
+      );
+    }
   }
 
   @UseGuards(JwtAuthGuard)
