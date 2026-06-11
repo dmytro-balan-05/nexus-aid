@@ -41,17 +41,20 @@ export class DonationsController {
 
   @Post('handle-return')
   async handleReturnPost(
-    @Body() body: Record<string, string>,
+    @Body() body: any,
+    @Query() query: any,
     @Res() res: Response,
   ) {
     const frontendUrl =
       process.env.FRONTEND_URL ||
       'https://nexus-aid-frontend-production.up.railway.app';
+    const params = { ...(query || {}), ...(body || {}) };
+    console.log('[HANDLE RETURN POST] params:', JSON.stringify(params));
     try {
-      const result = await this.donationsService.verifyReturn(body);
+      const result = await this.donationsService.verifyReturn(params);
       const success = result.success || result.alreadyProcessed;
       return res.redirect(
-        `${frontendUrl}/donations/result?success=${success}&status=${body.transactionStatus || ''}`,
+        `${frontendUrl}/donations/result?success=${success}&status=${params.transactionStatus || ''}`,
       );
     } catch (e: any) {
       console.error('[HANDLE RETURN ERROR]', e?.message);
@@ -62,18 +65,17 @@ export class DonationsController {
   }
 
   @Get('handle-return')
-  async handleReturnGet(
-    @Query() query: Record<string, string>,
-    @Res() res: Response,
-  ) {
+  async handleReturnGet(@Query() query: any, @Res() res: Response) {
     const frontendUrl =
       process.env.FRONTEND_URL ||
       'https://nexus-aid-frontend-production.up.railway.app';
+    const params = { ...(query || {}) };
+    console.log('[HANDLE RETURN GET] params:', JSON.stringify(params));
     try {
-      const result = await this.donationsService.verifyReturn(query);
+      const result = await this.donationsService.verifyReturn(params);
       const success = result.success || result.alreadyProcessed;
       return res.redirect(
-        `${frontendUrl}/donations/result?success=${success}&status=${query.transactionStatus || ''}`,
+        `${frontendUrl}/donations/result?success=${success}&status=${params.transactionStatus || ''}`,
       );
     } catch (e: any) {
       console.error('[HANDLE RETURN ERROR]', e?.message);
