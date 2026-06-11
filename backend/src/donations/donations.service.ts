@@ -36,6 +36,35 @@ export class DonationsService {
       .digest('hex');
   }
 
+  private async checkWayForPayStatus(orderReference: string): Promise<string> {
+    try {
+      const merchantAccount = this.config.get<string>('WFP_MERCHANT_ACCOUNT')!;
+      const signature = this.generateSignature([
+        merchantAccount,
+        orderReference,
+      ]);
+
+      const response = await fetch('https://api.wayforpay.com/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionType: 'CHECK_STATUS',
+          merchantAccount,
+          orderReference,
+          merchantAuthType: 'SimpleSignature',
+          merchantSignature: signature,
+        }),
+      });
+
+      const data = (await response.json()) as any;
+      console.log('[CHECK_STATUS] response:', JSON.stringify(data));
+      return data.transactionStatus || 'Unknown';
+    } catch (e: any) {
+      console.error('[CHECK_STATUS] error:', e?.message);
+      return 'Unknown';
+    }
+  }
+
   async initiate(dto: InitiateDonationDto, userId?: string) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: dto.campaignId },
@@ -97,7 +126,7 @@ export class DonationsService {
   }
 
   async verifyReturn(params: Record<string, string>) {
-    const { orderReference, transactionStatus } = params;
+    const { orderReference } = params;
 
     if (!orderReference)
       throw new BadRequestException('Missing orderReference');
@@ -107,14 +136,13 @@ export class DonationsService {
       include: { campaign: { select: { category: true } } },
     });
 
-    if (!donation) {
-      console.error('[VERIFY RETURN] Донат не знайдено:', orderReference);
-      throw new NotFoundException('Донат не знайдено');
-    }
-
+    if (!donation) throw new NotFoundException('Донат не знайдено');
     if (donation.status === 'approved') {
       return { success: true, alreadyProcessed: true };
     }
+
+    const transactionStatus = await this.checkWayForPayStatus(orderReference);
+    console.log('[VERIFY_RETURN] status from WFP:', transactionStatus);
 
     if (transactionStatus === 'Approved') {
       await this.prisma.$transaction([
@@ -128,9 +156,6 @@ export class DonationsService {
         }),
       ]);
 
-      console.log('[VERIFY RETURN] Донат підтверджено:', orderReference);
-
-      // Гейміфікація окремо — не ламаємо основний флоу
       if (donation.donorId) {
         try {
           await this.gamification.processAfterDonation(
@@ -140,7 +165,7 @@ export class DonationsService {
             donation.campaignId,
           );
         } catch (e: any) {
-          console.error('[VERIFY RETURN] Gamification error:', e?.message);
+          console.error('[VERIFY_RETURN] Gamification error:', e?.message);
         }
       }
 
@@ -158,7 +183,7 @@ export class DonationsService {
           );
         }
       } catch (e: any) {
-        console.error('[VERIFY RETURN] Campaign funded error:', e?.message);
+        console.error('[VERIFY_RETURN] Campaign funded error:', e?.message);
       }
 
       return { success: true };
@@ -227,24 +252,33 @@ export class DonationsService {
       ]);
 
       if (donation.donorId) {
-        await this.gamification.processAfterDonation(
-          donation.donorId,
-          donation.campaign.category,
-          donation.amount,
-          donation.campaignId,
-        );
+        try {
+          await this.gamification.processAfterDonation(
+            donation.donorId,
+            donation.campaign.category,
+            donation.amount,
+            donation.campaignId,
+          );
+        } catch (e: any) {
+          console.error('[WEBHOOK] Gamification error:', e?.message);
+        }
       }
 
-      const updatedCampaign = await this.prisma.campaign.findUnique({
-        where: { id: donation.campaignId },
-        select: { currentAmount: true, goalAmount: true },
-      });
-
-      if (
-        updatedCampaign &&
-        updatedCampaign.currentAmount >= updatedCampaign.goalAmount
-      ) {
-        await this.gamification.processAfterCampaignFunded(donation.campaignId);
+      try {
+        const updatedCampaign = await this.prisma.campaign.findUnique({
+          where: { id: donation.campaignId },
+          select: { currentAmount: true, goalAmount: true },
+        });
+        if (
+          updatedCampaign &&
+          updatedCampaign.currentAmount >= updatedCampaign.goalAmount
+        ) {
+          await this.gamification.processAfterCampaignFunded(
+            donation.campaignId,
+          );
+        }
+      } catch (e: any) {
+        console.error('[WEBHOOK] Campaign funded error:', e?.message);
       }
     } else if (['Declined', 'Expired'].includes(body.transactionStatus)) {
       await this.prisma.donation.update({

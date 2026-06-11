@@ -70,6 +70,7 @@ export default function DonateButton({ campaignId, campaignTitle }: Props) {
                 form.appendChild(input);
             });
 
+            localStorage.setItem('pending_donation_order', data.orderReference);
             document.body.appendChild(form);
             form.submit();
         } catch (err: any) {
