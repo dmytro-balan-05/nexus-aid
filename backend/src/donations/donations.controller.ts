@@ -31,6 +31,11 @@ export class DonationsController {
     return this.donationsService.handleWebhook(body);
   }
 
+  @Post('verify-return')
+  verifyReturn(@Body() body: Record<string, string>) {
+    return this.donationsService.verifyReturn(body);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('my')
   findMyDonations(@Request() req) {

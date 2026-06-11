@@ -96,16 +96,104 @@ export class DonationsService {
     };
   }
 
+  async verifyReturn(params: Record<string, string>) {
+    const {
+      merchantAccount,
+      orderReference,
+      amount,
+      currency,
+      authCode,
+      cardPan,
+      transactionStatus,
+      reasonCode,
+      merchantSignature,
+    } = params;
+
+    const expectedSignature = this.generateSignature([
+      String(merchantAccount),
+      String(orderReference),
+      String(amount),
+      String(currency),
+      String(authCode ?? ''),
+      String(cardPan ?? ''),
+      String(transactionStatus),
+      String(reasonCode ?? ''),
+    ]);
+
+    if (expectedSignature !== merchantSignature) {
+      console.error('[WFP RETURN] Підписи не збігаються');
+      console.error('[WFP RETURN] Expected:', expectedSignature);
+      console.error('[WFP RETURN] Got:', merchantSignature);
+      throw new BadRequestException('Invalid signature');
+    }
+
+    const donation = await this.prisma.donation.findUnique({
+      where: { orderReference },
+      include: { campaign: { select: { category: true } } },
+    });
+
+    if (!donation) throw new NotFoundException('Донат не знайдено');
+    if (donation.status === 'approved') {
+      return { success: true, alreadyProcessed: true };
+    }
+
+    if (transactionStatus === 'Approved') {
+      await this.prisma.$transaction([
+        this.prisma.donation.update({
+          where: { orderReference },
+          data: { status: 'approved' },
+        }),
+        this.prisma.campaign.update({
+          where: { id: donation.campaignId },
+          data: { currentAmount: { increment: donation.amount } },
+        }),
+      ]);
+
+      if (donation.donorId) {
+        await this.gamification.processAfterDonation(
+          donation.donorId,
+          donation.campaign.category,
+          donation.amount,
+          donation.campaignId,
+        );
+      }
+
+      const updatedCampaign = await this.prisma.campaign.findUnique({
+        where: { id: donation.campaignId },
+        select: { currentAmount: true, goalAmount: true },
+      });
+
+      if (
+        updatedCampaign &&
+        updatedCampaign.currentAmount >= updatedCampaign.goalAmount
+      ) {
+        await this.gamification.processAfterCampaignFunded(donation.campaignId);
+      }
+
+      return { success: true };
+    }
+
+    if (['Declined', 'Expired'].includes(transactionStatus)) {
+      await this.prisma.donation.update({
+        where: { orderReference },
+        data: { status: 'declined' },
+      });
+      return { success: false, status: transactionStatus };
+    }
+
+    return { success: false, status: transactionStatus };
+  }
+
   async handleWebhook(body: any) {
     const expectedSignature = this.generateSignature([
-      body.merchantAccount,
-      body.orderReference,
-      body.amount,
-      body.currency,
-      body.authCode,
-      body.cardPan,
-      body.transactionStatus,
-      body.reasonCode,
+      String(body.merchantAccount),
+      String(body.orderReference),
+      String(body.amount),
+      String(body.currency),
+      String(body.authCode ?? ''),
+      String(body.cardPan ?? ''),
+      String(body.transactionStatus),
+      String(body.reasonCode ?? ''),
     ]);
 
     if (expectedSignature !== body.merchantSignature) {
@@ -118,6 +206,19 @@ export class DonationsService {
     });
 
     if (!donation) return { status: 'error', message: 'Donation not found' };
+    if (donation.status === 'approved') {
+      const responseTime = Math.floor(Date.now() / 1000);
+      return {
+        orderReference: body.orderReference,
+        status: 'accept',
+        time: responseTime,
+        signature: this.generateSignature([
+          body.orderReference,
+          'accept',
+          String(responseTime),
+        ]),
+      };
+    }
 
     if (body.transactionStatus === 'Approved') {
       await this.prisma.$transaction([
@@ -154,7 +255,6 @@ export class DonationsService {
       ) {
         await this.gamification.processAfterCampaignFunded(donation.campaignId);
       }
-      
     } else if (['Declined', 'Expired'].includes(body.transactionStatus)) {
       await this.prisma.donation.update({
         where: { orderReference: body.orderReference },
@@ -163,7 +263,6 @@ export class DonationsService {
     }
 
     const responseTime = Math.floor(Date.now() / 1000);
-
     return {
       orderReference: body.orderReference,
       status: 'accept',
