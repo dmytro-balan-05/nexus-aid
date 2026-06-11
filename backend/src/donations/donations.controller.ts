@@ -39,8 +39,30 @@ export class DonationsController {
     return this.donationsService.verifyReturn(body);
   }
 
+  @Post('handle-return')
+  async handleReturnPost(
+    @Body() body: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      'https://nexus-aid-frontend-production.up.railway.app';
+    try {
+      const result = await this.donationsService.verifyReturn(body);
+      const success = result.success || result.alreadyProcessed;
+      return res.redirect(
+        `${frontendUrl}/donations/result?success=${success}&status=${body.transactionStatus || ''}`,
+      );
+    } catch (e: any) {
+      console.error('[HANDLE RETURN ERROR]', e?.message);
+      return res.redirect(
+        `${frontendUrl}/donations/result?success=false&status=error`,
+      );
+    }
+  }
+
   @Get('handle-return')
-  async handleReturn(
+  async handleReturnGet(
     @Query() query: Record<string, string>,
     @Res() res: Response,
   ) {
