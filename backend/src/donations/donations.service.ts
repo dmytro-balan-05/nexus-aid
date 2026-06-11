@@ -99,8 +99,6 @@ export class DonationsService {
   async verifyReturn(params: Record<string, string>) {
     const { orderReference, transactionStatus } = params;
 
-    console.log('[WFP RETURN] params:', JSON.stringify(params));
-
     if (!orderReference)
       throw new BadRequestException('Missing orderReference');
 
@@ -109,7 +107,11 @@ export class DonationsService {
       include: { campaign: { select: { category: true } } },
     });
 
-    if (!donation) throw new NotFoundException('Донат не знайдено');
+    if (!donation) {
+      console.error('[VERIFY RETURN] Донат не знайдено:', orderReference);
+      throw new NotFoundException('Донат не знайдено');
+    }
+
     if (donation.status === 'approved') {
       return { success: true, alreadyProcessed: true };
     }
@@ -126,25 +128,37 @@ export class DonationsService {
         }),
       ]);
 
+      console.log('[VERIFY RETURN] Донат підтверджено:', orderReference);
+
+      // Гейміфікація окремо — не ламаємо основний флоу
       if (donation.donorId) {
-        await this.gamification.processAfterDonation(
-          donation.donorId,
-          donation.campaign.category,
-          donation.amount,
-          donation.campaignId,
-        );
+        try {
+          await this.gamification.processAfterDonation(
+            donation.donorId,
+            donation.campaign.category,
+            donation.amount,
+            donation.campaignId,
+          );
+        } catch (e: any) {
+          console.error('[VERIFY RETURN] Gamification error:', e?.message);
+        }
       }
 
-      const updatedCampaign = await this.prisma.campaign.findUnique({
-        where: { id: donation.campaignId },
-        select: { currentAmount: true, goalAmount: true },
-      });
-
-      if (
-        updatedCampaign &&
-        updatedCampaign.currentAmount >= updatedCampaign.goalAmount
-      ) {
-        await this.gamification.processAfterCampaignFunded(donation.campaignId);
+      try {
+        const updatedCampaign = await this.prisma.campaign.findUnique({
+          where: { id: donation.campaignId },
+          select: { currentAmount: true, goalAmount: true },
+        });
+        if (
+          updatedCampaign &&
+          updatedCampaign.currentAmount >= updatedCampaign.goalAmount
+        ) {
+          await this.gamification.processAfterCampaignFunded(
+            donation.campaignId,
+          );
+        }
+      } catch (e: any) {
+        console.error('[VERIFY RETURN] Campaign funded error:', e?.message);
       }
 
       return { success: true };
