@@ -10,21 +10,18 @@ function ResultContent() {
     const params = useSearchParams();
     const [verified, setVerified] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const transactionStatus = params.get('transactionStatus');
-    const isApprovedByWfp = transactionStatus === 'Approved';
+    const [status, setStatus] = useState<string>('');
 
     useEffect(() => {
-        if (!isApprovedByWfp) {
+        const orderReference = params.get('orderReference');
+        if (!orderReference) {
             setLoading(false);
             setVerified(false);
             return;
         }
 
         const payload: Record<string, string> = {};
-        params.forEach((value, key) => {
-            payload[key] = value;
-        });
+        params.forEach((value, key) => { payload[key] = value; });
 
         fetch(`${API_URL}/donations/verify-return`, {
             method: 'POST',
@@ -35,10 +32,10 @@ function ResultContent() {
             .then((res) => res.json())
             .then((data) => {
                 setVerified(data.success === true || data.alreadyProcessed === true);
+                setStatus(data.status || '');
             })
             .catch(() => {
-                // якщо бекенд недоступний — довіряємо WayForPay
-                setVerified(true);
+                setVerified(params.get('transactionStatus') === 'Approved');
             })
             .finally(() => setLoading(false));
     }, []);
@@ -54,39 +51,27 @@ function ResultContent() {
         );
     }
 
-    const isSuccess = verified;
+    const isInProcessing = status === 'InProcessing' || params.get('transactionStatus') === 'InProcessing';
 
     return (
         <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg-primary)' }}>
-            <div
-                className="rounded-2xl p-10 max-w-md w-full text-center shadow-lg"
-                style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                }}
-            >
+            <div className="rounded-2xl p-10 max-w-md w-full text-center shadow-lg"
+                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                 <div className="text-6xl mb-6">
-                    {isSuccess ? '🎉' : '😔'}
+                    {verified ? '🎉' : isInProcessing ? '⏳' : '😔'}
                 </div>
-                <h1
-                    className="text-3xl font-extrabold mb-3"
-                    style={{ color: 'var(--text-primary)' }}
-                >
-                    {isSuccess ? 'Дякуємо!' : 'Оплата не вдалась'}
+                <h1 className="text-3xl font-extrabold mb-3" style={{ color: 'var(--text-primary)' }}>
+                    {verified ? 'Дякуємо!' : isInProcessing ? 'Обробляється...' : 'Оплата не вдалась'}
                 </h1>
                 <p className="mb-8" style={{ color: 'var(--text-secondary)' }}>
-                    {isSuccess
+                    {verified
                         ? 'Ваш донат успішно проведено. Разом до перемоги!'
-                        : 'Щось пішло не так. Спробуйте ще раз.'}
+                        : isInProcessing
+                            ? 'Платіж обробляється банком. Донат зарахується автоматично після підтвердження.'
+                            : 'Щось пішло не так. Спробуйте ще раз.'}
                 </p>
-                <Link
-                    href="/campaigns"
-                    className="inline-block px-8 py-3 rounded-xl font-bold transition"
-                    style={{
-                        background: 'var(--accent)',
-                        color: '#ffffff',
-                    }}
-                >
+                <Link href="/campaigns" className="inline-block px-8 py-3 rounded-xl font-bold transition"
+                      style={{ background: 'var(--accent)', color: '#ffffff' }}>
                     До зборів
                 </Link>
             </div>
@@ -96,8 +81,6 @@ function ResultContent() {
 
 export default function DonationResultPage() {
     return (
-        <Suspense>
-            <ResultContent />
-        </Suspense>
+        <Suspense><ResultContent /></Suspense>
     );
 }

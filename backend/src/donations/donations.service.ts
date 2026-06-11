@@ -97,35 +97,12 @@ export class DonationsService {
   }
 
   async verifyReturn(params: Record<string, string>) {
-    const {
-      merchantAccount,
-      orderReference,
-      amount,
-      currency,
-      authCode,
-      cardPan,
-      transactionStatus,
-      reasonCode,
-      merchantSignature,
-    } = params;
+    const { orderReference, transactionStatus } = params;
 
-    const expectedSignature = this.generateSignature([
-      String(merchantAccount),
-      String(orderReference),
-      String(amount),
-      String(currency),
-      String(authCode ?? ''),
-      String(cardPan ?? ''),
-      String(transactionStatus),
-      String(reasonCode ?? ''),
-    ]);
+    console.log('[WFP RETURN] params:', JSON.stringify(params));
 
-    if (expectedSignature !== merchantSignature) {
-      console.error('[WFP RETURN] Підписи не збігаються');
-      console.error('[WFP RETURN] Expected:', expectedSignature);
-      console.error('[WFP RETURN] Got:', merchantSignature);
-      throw new BadRequestException('Invalid signature');
-    }
+    if (!orderReference)
+      throw new BadRequestException('Missing orderReference');
 
     const donation = await this.prisma.donation.findUnique({
       where: { orderReference },
