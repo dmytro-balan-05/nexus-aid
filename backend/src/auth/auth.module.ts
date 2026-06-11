@@ -7,7 +7,6 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-import { GithubStrategy } from './strategies/github.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GamificationModule } from '../gamification/gamification.module';
 
@@ -31,7 +30,6 @@ import { GamificationModule } from '../gamification/gamification.module';
     PrismaService,
     LocalStrategy,
     JwtStrategy,
-    GithubStrategy,
     GoogleStrategy,
   ],
   exports: [AuthService],
