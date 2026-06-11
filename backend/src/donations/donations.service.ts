@@ -53,6 +53,7 @@ export class DonationsService {
           orderReference,
           merchantAuthType: 'SimpleSignature',
           merchantSignature: signature,
+          apiVersion: 1,
         }),
       });
 
