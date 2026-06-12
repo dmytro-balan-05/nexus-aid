@@ -46,18 +46,28 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    const oldUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (oldUser) {
-      throw new BadRequestException('Користувач з таким email вже існує');
+
+    const code = this.generateCode();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    if (existingUser) {
+      if (existingUser.isVerified) {
+        throw new BadRequestException('Користувач з таким email вже існує');
+      }
+      await this.prisma.user.update({
+        where: { email: dto.email },
+        data: { verificationCode: code, verificationExpiry: expiry },
+      });
+      await this.mail.sendVerificationCode(dto.email, code);
+      return { requiresVerification: true, email: dto.email };
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(dto.password, salt);
     const avatarSeed = encodeURIComponent(dto.name);
-    const code = this.generateCode();
-    const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
     await this.prisma.user.create({
       data: {
@@ -72,7 +82,6 @@ export class AuthService {
     });
 
     await this.mail.sendVerificationCode(dto.email, code);
-
     return { requiresVerification: true, email: dto.email };
   }
 

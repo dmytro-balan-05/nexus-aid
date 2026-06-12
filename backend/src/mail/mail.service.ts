@@ -15,11 +15,8 @@ export class MailService {
         user: this.config.get<string>('GMAIL_USER'),
         pass: this.config.get<string>('GMAIL_APP_PASSWORD'),
       },
-      tls: {
-        rejectUnauthorized: false,
-      },
-      family: 4,
-    });
+      tls: { rejectUnauthorized: false },
+    } as any);
   }
 
   async sendVerificationCode(email: string, code: string): Promise<void> {
