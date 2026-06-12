@@ -37,6 +37,10 @@ model User {
   provider String  @default("local")
   socialId String?
 
+  isVerified         Boolean   @default(true)
+  verificationCode   String?
+  verificationExpiry DateTime?
+
   verificationRequest  VerificationRequest?
   verificationMessages VerificationMessage[]
   chat                 Chat?

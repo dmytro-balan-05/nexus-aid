@@ -1,8 +1,13 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { GamificationService } from '../gamification/gamification.service';
+import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -11,7 +16,12 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private gamification: GamificationService,
+    private mail: MailService,
   ) {}
+
+  private generateCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -23,6 +33,9 @@ export class AuthService {
   }
 
   async login(user: any) {
+    if (!user.isVerified) {
+      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
+    }
     const payload = { username: user.email, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
@@ -43,18 +56,68 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(dto.password, salt);
     const avatarSeed = encodeURIComponent(dto.name);
+    const code = this.generateCode();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    const user = await this.prisma.user.create({
+    await this.prisma.user.create({
       data: {
         email: dto.email,
         name: dto.name,
         password: hashedPassword,
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
+        isVerified: false,
+        verificationCode: code,
+        verificationExpiry: expiry,
       },
     });
 
-    await this.gamification.grantBadgeSystem(user.id, 'welcome');
-    return this.login(user);
+    await this.mail.sendVerificationCode(dto.email, code);
+
+    return { requiresVerification: true, email: dto.email };
+  }
+
+  async verifyEmail(email: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) throw new BadRequestException('Користувача не знайдено');
+    if (user.isVerified)
+      throw new BadRequestException('Email вже підтверджений');
+    if (!user.verificationCode || user.verificationCode !== code) {
+      throw new BadRequestException('Невірний код');
+    }
+    if (user.verificationExpiry && user.verificationExpiry < new Date()) {
+      throw new BadRequestException('Код застарів');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { email },
+      data: {
+        isVerified: true,
+        verificationCode: null,
+        verificationExpiry: null,
+      },
+    });
+
+    await this.gamification.grantBadgeSystem(updated.id, 'welcome');
+    return this.login(updated);
+  }
+
+  async resendCode(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new BadRequestException('Користувача не знайдено');
+    if (user.isVerified)
+      throw new BadRequestException('Email вже підтверджений');
+
+    const code = this.generateCode();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { email },
+      data: { verificationCode: code, verificationExpiry: expiry },
+    });
+
+    await this.mail.sendVerificationCode(email, code);
+    return { success: true };
   }
 
   async validateOAuthUser(data: {
@@ -91,6 +154,7 @@ export class AuthService {
             `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
           provider: data.provider,
           socialId: data.socialId,
+          isVerified: true,
         },
       });
       await this.gamification.grantBadgeSystem(user.id, 'welcome');
