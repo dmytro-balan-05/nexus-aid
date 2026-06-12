@@ -28,7 +28,7 @@ export default function RegisterPage() {
     return (
         <div className="relative flex min-h-screen flex-col items-center justify-center p-4 bg-[var(--bg-secondary)] overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-                <span className="text-[20vw] font-black tracking-tighter opacity-[var(--text-primary)] whitespace-nowrap opacity-[0.03]">
+                <span className="text-[20vw] font-black tracking-tighter opacity-[0.03] text-[var(--text-primary)] whitespace-nowrap">
                     NEXUSAID
                 </span>
             </div>
