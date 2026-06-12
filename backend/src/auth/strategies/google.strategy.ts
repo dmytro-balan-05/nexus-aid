@@ -8,12 +8,21 @@ import { AuthService } from '../auth.service';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(
     private authService: AuthService,
-    configService: ConfigService,
+    private configService: ConfigService,
   ) {
+    const clientID =
+      configService.get<string>('GOOGLE_CLIENT_ID') || 'placeholder';
+    const clientSecret =
+      configService.get<string>('GOOGLE_CLIENT_SECRET') || 'placeholder';
+    console.log('[GOOGLE] CLIENT_ID:', clientID);
+    console.log(
+      '[GOOGLE] CLIENT_SECRET starts with:',
+      clientSecret?.substring(0, 10),
+    );
+
     super({
-      clientID: configService.get<string>('GOOGLE_CLIENT_ID') || 'placeholder',
-      clientSecret:
-        configService.get<string>('GOOGLE_CLIENT_SECRET') || 'placeholder',
+      clientID,
+      clientSecret,
       callbackURL:
         configService.get<string>('GOOGLE_CALLBACK_URL') ||
         'https://nexus-aid-production.up.railway.app/auth/google/callback',
