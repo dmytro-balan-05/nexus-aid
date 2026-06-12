@@ -1,27 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
-  private transporter: nodemailer.Transporter;
+  private resend: Resend;
 
   constructor(private config: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: this.config.get<string>('GMAIL_USER'),
-        pass: this.config.get<string>('GMAIL_APP_PASSWORD'),
-      },
-      tls: { rejectUnauthorized: false },
-    } as any);
+    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
   }
 
   async sendVerificationCode(email: string, code: string): Promise<void> {
-    await this.transporter.sendMail({
-      from: `"NexusAid" <${this.config.get<string>('GMAIL_USER')}>`,
+    await this.resend.emails.send({
+      from: 'NexusAid <onboarding@resend.dev>',
       to: email,
       subject: 'Код підтвердження NexusAid',
       html: `
