@@ -7,11 +7,14 @@ export class MailService {
   private resend: Resend;
 
   constructor(private config: ConfigService) {
-    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
+    const apiKey = this.config.get<string>('RESEND_API_KEY');
+    console.log('[MAIL] RESEND_API_KEY exists:', !!apiKey);
+    this.resend = new Resend(apiKey);
   }
 
   async sendVerificationCode(email: string, code: string): Promise<void> {
-    await this.resend.emails.send({
+    console.log('[MAIL] Sending to:', email);
+    const result = await this.resend.emails.send({
       from: 'NexusAid <onboarding@resend.dev>',
       to: email,
       subject: 'Код підтвердження NexusAid',
@@ -28,5 +31,6 @@ export class MailService {
         </div>
       `,
     });
+    console.log('[MAIL] Resend result:', JSON.stringify(result));
   }
 }
