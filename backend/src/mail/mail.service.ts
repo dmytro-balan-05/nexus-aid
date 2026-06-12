@@ -24,7 +24,7 @@ export class MailService {
                       color:#111827;">
             ${code}
           </div>
-          <p style="color:#9ca3af;font-size:13px;">Код дійсний 15 хвилин. Якщо ви не реєструвались — ігноруйте цей лист.</p>
+          <p style="color:#9ca3af;font-size:13px;">Код дійсний 15 хвилин.</p>
         </div>
       `,
     });
