@@ -1,0 +1,45 @@
+stages:
+  - install
+  - test
+  - build
+
+variables:
+  NODE_VERSION: "20"
+
+cache:
+  key: $CI_COMMIT_REF_SLUG
+  paths:
+    - backend/node_modules/
+
+backend:install:
+  stage: install
+  image: node:20-alpine
+  script:
+    - cd backend && npm ci
+  artifacts:
+    paths:
+      - backend/node_modules/
+    expire_in: 1 hour
+
+backend:test:
+  stage: test
+  image: node:20-alpine
+  script:
+    - cd backend && npm run test:cov
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage/cobertura-coverage.xml
+    paths:
+      - backend/coverage/
+    expire_in: 1 week
+
+backend:build:
+  stage: build
+  image: node:20-alpine
+  script:
+    - cd backend && npm run build
+  only:
+    - main
