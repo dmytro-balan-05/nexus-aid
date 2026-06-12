@@ -21,7 +21,7 @@ function Counter({ target, suffix = '' }: { target: number; suffix?: string }) {
     const [count, setCount] = useState(0);
     const { ref, inView } = useInView();
     useEffect(() => {
-        if (!inView) return;
+        if (!inView || target === 0) return;
         let start = 0;
         const duration = 1500;
         const step = Math.ceil(target / (duration / 16));
@@ -48,12 +48,6 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
     );
 }
 
-const STATS = [
-    { label: 'Зборів створено', value: 120, suffix: '+' },
-    { label: 'Донатів здійснено', value: 3400, suffix: '+' },
-    { label: 'Волонтерів верифіковано', value: 48, suffix: '' },
-];
-
 const HOW_IT_WORKS = [
     { step: '01', title: 'Створи збір', desc: 'Верифікований волонтер створює кампанію з описом, метою та фото.' },
     { step: '02', title: 'Задонать', desc: 'Будь-хто може підтримати збір — авторизований або анонімно через WayForPay.' },
@@ -78,6 +72,21 @@ const TECH = [
 ];
 
 export default function AboutPage() {
+    const [stats, setStats] = useState({ campaigns: 0, donations: 0, volunteers: 0 });
+
+    useEffect(() => {
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(data => setStats(data))
+            .catch(() => {});
+    }, []);
+
+    const STATS = [
+        { label: 'Активних зборів', value: stats.campaigns },
+        { label: 'Донатів здійснено', value: stats.donations },
+        { label: 'Волонтерів верифіковано', value: stats.volunteers },
+    ];
+
     return (
         <div style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
 
@@ -91,7 +100,7 @@ export default function AboutPage() {
                 </div>
                 <div className="relative z-10 max-w-3xl">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-6 border"
-                         style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'transparent' }}>
+                         style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
                         🇺🇦 Благодійна платформа
                     </div>
                     <h1 className="text-5xl sm:text-7xl font-black mb-6 leading-none">
@@ -123,7 +132,7 @@ export default function AboutPage() {
                         <div key={s.label} className="text-center p-8 rounded-2xl border"
                              style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
                             <div className="text-5xl font-black mb-2" style={{ color: 'var(--accent)' }}>
-                                <Counter target={s.value} suffix={s.suffix} />
+                                <Counter target={s.value} />
                             </div>
                             <div className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>{s.label}</div>
                         </div>
@@ -169,7 +178,8 @@ export default function AboutPage() {
                             <FadeIn key={h.step} delay={i * 150}>
                                 <div className="flex items-start gap-6 p-8 rounded-2xl border"
                                      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-                                    <div className="text-4xl font-black flex-shrink-0" style={{ color: 'var(--accent)', opacity: 0.3 }}>
+                                    <div className="text-4xl font-black flex-shrink-0"
+                                         style={{ color: 'var(--accent)', opacity: 0.3 }}>
                                         {h.step}
                                     </div>
                                     <div>
