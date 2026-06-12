@@ -41,6 +41,15 @@ export class AuthController {
     return { success: true };
   }
 
+  @Post('set-session')
+  setSession(
+    @Body() body: { token: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.cookie('jwt', body.token, { httpOnly: true, sameSite: 'lax' });
+    return { success: true };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Request() req) {
@@ -55,9 +64,8 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Request() req, @Res() res: Response) {
     const token = await this.authService.login(req.user);
-    res.cookie('jwt', token.access_token, { httpOnly: true, sameSite: 'lax' });
     res.redirect(
-      'https://nexus-aid-frontend-production.up.railway.app/profile',
+      `https://nexus-aid-frontend-production.up.railway.app/auth/callback?token=${token.access_token}`,
     );
   }
 }
