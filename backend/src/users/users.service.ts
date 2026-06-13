@@ -148,12 +148,20 @@ export class UsersService {
 
     console.log(`[ADMIN] Deleting user ${user.email}. Reason: ${reason}`);
 
-    await this.prisma.chatMessage.deleteMany({ where: { senderId: userId } });
+    // Видаляємо ВСІ повідомлення в чаті юзера (включно з адмінськими)
+    const userChat = await this.prisma.chat.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (userChat) {
+      await this.prisma.chatMessage.deleteMany({
+        where: { chatId: userChat.id },
+      });
+    }
     await this.prisma.chat.deleteMany({ where: { userId } });
 
     await this.prisma.userBadge.deleteMany({ where: { userId } });
     await this.prisma.donorProfile.deleteMany({ where: { userId } });
-
     await this.prisma.donation.updateMany({
       where: { donorId: userId },
       data: { donorId: null },
@@ -183,13 +191,10 @@ export class UsersService {
       where: { senderId: userId },
     });
     await this.prisma.verificationRequest.deleteMany({ where: { userId } });
-
     await this.prisma.campaign.deleteMany({ where: { authorId: userId } });
-
     await this.prisma.profileView.deleteMany({
       where: { OR: [{ viewerId: userId }, { targetId: userId }] },
     });
-
     await this.prisma.user.delete({ where: { id: userId } });
 
     return { success: true };
