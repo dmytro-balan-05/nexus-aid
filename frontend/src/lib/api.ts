@@ -1,9 +1,17 @@
 const API_URL = '/api';
 
 const getHeaders = (): HeadersInit => {
-    return {
-        'Content-Type': 'application/json',
-    };
+    return { 'Content-Type': 'application/json' };
+};
+
+const extractError = async (res: Response): Promise<string> => {
+    const text = await res.text();
+    try {
+        const json = JSON.parse(text);
+        return json.message || text || 'Помилка';
+    } catch {
+        return text || 'Помилка';
+    }
 };
 
 export const api = {
@@ -14,9 +22,7 @@ export const api = {
             credentials: 'include',
         });
 
-        if (res.status === 401) {
-            return null;
-        }
+        if (res.status === 401) return null;
 
         const text = await res.text();
         if (!text) return null;
@@ -33,8 +39,7 @@ export const api = {
         });
 
         if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || 'Error occurred');
+            throw new Error(await extractError(res));
         }
 
         const text = await res.text();
@@ -50,8 +55,7 @@ export const api = {
         });
 
         if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || 'Failed to update');
+            throw new Error(await extractError(res));
         }
 
         const text = await res.text();
