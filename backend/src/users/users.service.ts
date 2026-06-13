@@ -150,20 +150,46 @@ export class UsersService {
 
     await this.prisma.chatMessage.deleteMany({ where: { senderId: userId } });
     await this.prisma.chat.deleteMany({ where: { userId } });
+
     await this.prisma.userBadge.deleteMany({ where: { userId } });
     await this.prisma.donorProfile.deleteMany({ where: { userId } });
+
     await this.prisma.donation.updateMany({
       where: { donorId: userId },
       data: { donorId: null },
     });
+
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { authorId: userId },
+      select: { id: true },
+    });
+    if (campaigns.length > 0) {
+      const ids = campaigns.map((c) => c.id);
+      await this.prisma.donation.deleteMany({
+        where: { campaignId: { in: ids } },
+      });
+    }
+
+    const verReq = await this.prisma.verificationRequest.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (verReq) {
+      await this.prisma.verificationMessage.deleteMany({
+        where: { requestId: verReq.id },
+      });
+    }
     await this.prisma.verificationMessage.deleteMany({
       where: { senderId: userId },
     });
     await this.prisma.verificationRequest.deleteMany({ where: { userId } });
+
     await this.prisma.campaign.deleteMany({ where: { authorId: userId } });
+
     await this.prisma.profileView.deleteMany({
       where: { OR: [{ viewerId: userId }, { targetId: userId }] },
     });
+
     await this.prisma.user.delete({ where: { id: userId } });
 
     return { success: true };
