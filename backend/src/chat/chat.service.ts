@@ -138,4 +138,12 @@ export class ChatService {
       }),
     );
   }
+
+  async getChatUserId(chatId: string): Promise<string | null> {
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+      select: { userId: true },
+    });
+    return chat?.userId ?? null;
+  }
 }

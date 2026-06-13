@@ -143,8 +143,17 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (user) {
+            const knownBadgeIds = JSON.parse(localStorage.getItem('known_badge_ids') || '[]') as string[];
+
             api.get<GamificationData>('/gamification/me').then((data) => {
-                if (data) setGamification(data);
+                if (data) {
+                    setGamification(data);
+                    if (knownBadgeIds.length > 0) {
+                        const newBadges = data.badges.filter(b => !knownBadgeIds.includes(b.key));
+                        newBadges.forEach((b) => addToast(`🏅 Новий бейдж: ${b.name}`, 'badge', b.icon));
+                    }
+                    localStorage.setItem('known_badge_ids', JSON.stringify(data.badges.map(b => b.key)));
+                }
             });
             fetch('/api/donations/my', { credentials: 'include' })
                 .then((r) => r.ok ? r.json() : [])

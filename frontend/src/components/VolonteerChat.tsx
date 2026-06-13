@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nexus-aid-production.up.railway.app';
 
 interface ChatMessage {
     id: string;
@@ -21,21 +24,20 @@ export default function VolonteerChat() {
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [connected, setConnected] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const prevMessageCount = useRef(0);
+    const socketRef = useRef<Socket | null>(null);
+
+    const scrollToBottom = () => {
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    };
 
     const loadChat = async () => {
         try {
             const res = await fetch('/api/chat/me', { credentials: 'include' });
             const data = await res.json();
-            setChat((prev) => {
-                if (data.messages.length > prevMessageCount.current) {
-                    prevMessageCount.current = data.messages.length;
-                    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-                }
-                return data;
-            });
+            setChat(data);
+            scrollToBottom();
         } catch {}
     };
 
@@ -61,19 +63,56 @@ export default function VolonteerChat() {
     }, []);
 
     useEffect(() => {
-        if (isOpen) {
-            loadChat();
-            markAsRead();
-            pollingRef.current = setInterval(() => {
-                loadChat();
-                markAsRead();
-            }, 5000);
-        } else {
-            if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+        if (!isOpen) {
+            socketRef.current?.disconnect();
+            socketRef.current = null;
+            setConnected(false);
             loadUnread();
+            return;
         }
+
+        loadChat();
+        markAsRead();
+
+        fetch('/api/auth/ws-token', { credentials: 'include' })
+            .then(r => r.json())
+            .then(({ token }) => {
+                const socket = io(`${BACKEND_URL}/chat`, {
+                    auth: { token },
+                    transports: ['websocket', 'polling'],
+                });
+
+                socket.on('connect', () => {
+                    setConnected(true);
+                    console.log('[WS] Connected to chat');
+                });
+
+                socket.on('disconnect', () => {
+                    setConnected(false);
+                });
+
+                socket.on('new_message', (message: ChatMessage) => {
+                    setChat(prev => {
+                        if (!prev) return prev;
+                        if (prev.messages.some(m => m.id === message.id)) return prev;
+                        scrollToBottom();
+                        return { ...prev, messages: [...prev.messages, message] };
+                    });
+                    markAsRead();
+                });
+
+                socketRef.current = socket;
+            })
+            .catch(() => {
+                // Fallback to polling if WebSocket fails
+                const interval = setInterval(() => { loadChat(); markAsRead(); }, 5000);
+                return () => clearInterval(interval);
+            });
+
         return () => {
-            if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+            socketRef.current?.disconnect();
+            socketRef.current = null;
+            setConnected(false);
         };
     }, [isOpen]);
 
@@ -81,24 +120,24 @@ export default function VolonteerChat() {
         if (!newMessage.trim() || !chat) return;
         setIsSending(true);
         try {
-            const res = await fetch('/api/chat/me/message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ text: newMessage }),
-            });
-            if (!res.ok) throw new Error();
-            const msg = await res.json();
-            setChat((prev) => {
-                if (!prev) return prev;
-                const updated = { ...prev, messages: [...prev.messages, msg] };
-                prevMessageCount.current = updated.messages.length;
-                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-                return updated;
-            });
-            setNewMessage('');
+            if (socketRef.current?.connected) {
+                socketRef.current.emit('send_message', { text: newMessage });
+                setNewMessage('');
+            } else {
+                const res = await fetch('/api/chat/me/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ text: newMessage }),
+                });
+                if (!res.ok) throw new Error();
+                const msg = await res.json();
+                setChat(prev => prev ? { ...prev, messages: [...prev.messages, msg] } : prev);
+                setNewMessage('');
+                scrollToBottom();
+            }
         } catch {
-            alert('Помилка');
+            alert('Помилка відправки');
         } finally {
             setIsSending(false);
         }
@@ -109,10 +148,13 @@ export default function VolonteerChat() {
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <h2 className="text-lg font-bold text-[var(--text-primary)]">💬 Зв'язок з адміністрацією</h2>
-                    <p className="text-sm text-[var(--text-secondary)]">Напишіть нам якщо є питання</p>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                        Напишіть нам якщо є питання
+                        {connected && <span className="ml-2 text-green-500 text-xs">● online</span>}
+                    </p>
                 </div>
                 <button
-                    onClick={() => setIsOpen((p) => !p)}
+                    onClick={() => setIsOpen(p => !p)}
                     className="relative bg-black dark:bg-white dark:text-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:opacity-80 transition"
                 >
                     {isOpen ? 'Згорнути' : 'Відкрити чат'}
@@ -156,7 +198,11 @@ export default function VolonteerChat() {
                             placeholder="Написати повідомлення..."
                             className="flex-1 border border-[var(--border)] rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-[var(--bg-primary)] text-[var(--text-primary)]"
                         />
-                        <button onClick={handleSend} disabled={isSending || !newMessage.trim()} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition">→</button>
+                        <button
+                            onClick={handleSend}
+                            disabled={isSending || !newMessage.trim()}
+                            className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition"
+                        >→</button>
                     </div>
                 </div>
             )}

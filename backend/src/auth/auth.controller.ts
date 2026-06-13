@@ -41,6 +41,13 @@ export class AuthController {
     return { success: true };
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('ws-token')
+  async getWsToken(@Request() req) {
+    const token = await this.authService.getWsToken(req.user.id);
+    return { token };
+  }
+
   @Post('set-session')
   setSession(
     @Body() body: { token: string },

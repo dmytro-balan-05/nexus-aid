@@ -9,12 +9,16 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
+import { ChatGateway } from './chat.gateway';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   @Get('me')
   getMyChat(@Request() req) {
@@ -49,13 +53,24 @@ export class ChatController {
   }
 
   @Post('admin/:chatId/message')
-  sendAdminMessage(
+  async sendAdminMessage(
     @Param('chatId') chatId: string,
     @Body() body: { text: string },
     @Request() req,
   ) {
     if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
-    return this.chatService.sendMessageAdmin(chatId, req.user.id, body.text);
+
+    const message = await this.chatService.sendMessageAdmin(
+      chatId,
+      req.user.id,
+      body.text,
+    );
+
+    // Emit до волонтера в реальному часі
+    const userId = await this.chatService.getChatUserId(chatId);
+    if (userId) this.chatGateway.emitToUser(userId, message);
+
+    return message;
   }
 
   @Post('admin/:chatId/read')

@@ -1,12 +1,27 @@
 import { Module } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatController } from './chat.controller';
+import { ChatGateway } from './chat.gateway';
 import { PrismaService } from '../prisma.service';
 import { GamificationModule } from '../gamification/gamification.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-  imports: [GamificationModule],
+  imports: [
+    GamificationModule,
+    ConfigModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'secret',
+        signOptions: { expiresIn: '24h' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
   controllers: [ChatController],
-  providers: [ChatService, PrismaService],
+  providers: [ChatService, ChatGateway, PrismaService],
+  exports: [ChatGateway],
 })
 export class ChatModule {}
