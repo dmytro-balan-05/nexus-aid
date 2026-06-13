@@ -13,6 +13,7 @@ export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [newBadgeCount, setNewBadgeCount] = useState(0);
     const pathname = usePathname();
     const isHome = pathname === '/';
 
@@ -30,6 +31,26 @@ export default function Header() {
         return () => clearInterval(interval);
     }, [user]);
 
+    useEffect(() => {
+        if (!user) return;
+        setNewBadgeCount(parseInt(localStorage.getItem('new_badge_count') || '0'));
+        const handleStorage = () => {
+            setNewBadgeCount(parseInt(localStorage.getItem('new_badge_count') || '0'));
+        };
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, [user]);
+
+    const totalCount = unreadCount + newBadgeCount;
+
+    const handleBellClick = () => {
+        setShowNotifications(p => !p);
+        if (!showNotifications) {
+            localStorage.setItem('new_badge_count', '0');
+            setNewBadgeCount(0);
+        }
+    };
+
     return (
         <header className="border-b border-[var(--border)] bg-[var(--bg-card)] sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,16 +60,10 @@ export default function Header() {
                             NEXUS<span style={{ color: 'var(--accent)' }}>AID</span>
                         </Link>
                         <nav className="hidden md:ml-10 md:flex space-x-8">
-                            <Link href="/campaigns" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">
-                                Всі збори
-                            </Link>
-                            <Link href="/about" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">
-                                Про нас
-                            </Link>
+                            <Link href="/campaigns" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">Всі збори</Link>
+                            <Link href="/about" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">Про нас</Link>
                             {user?.role === 'admin' && (
-                                <Link href="/admin/users" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">
-                                    Адмін панель
-                                </Link>
+                                <Link href="/admin/users" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">Адмін панель</Link>
                             )}
                         </nav>
                     </div>
@@ -56,25 +71,18 @@ export default function Header() {
                     <div className="hidden md:flex items-center gap-3">
                         {!isHome && <QuickDonateButton compact />}
 
-                        <button
-                            onClick={toggle}
-                            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] transition"
-                            title={isDark ? 'Світла тема' : 'Темна тема'}
-                        >
+                        <button onClick={toggle} className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] transition" title={isDark ? 'Світла тема' : 'Темна тема'}>
                             {isDark ? '☀️' : '🌙'}
                         </button>
 
-                        {user?.role === 'volonteer' && (
+                        {user && (
                             <div className="relative">
-                                <button
-                                    onClick={() => setShowNotifications((p) => !p)}
-                                    className="relative w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
-                                >
+                                <button onClick={handleBellClick} className="relative w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
                                     🔔
-                                    {unreadCount > 0 && (
+                                    {totalCount > 0 && (
                                         <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
+                                            {totalCount > 9 ? '9+' : totalCount}
+                                        </span>
                                     )}
                                 </button>
                                 {showNotifications && (
@@ -82,20 +90,29 @@ export default function Header() {
                                         <div className="px-4 py-3 border-b border-[var(--border)]">
                                             <p className="font-bold text-sm text-[var(--text-primary)]">🔔 Сповіщення</p>
                                         </div>
-                                        {unreadCount > 0 ? (
-                                            <Link
-                                                href="/profile"
-                                                onClick={() => setShowNotifications(false)}
-                                                className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-secondary)] transition"
-                                            >
-                                                <span className="text-xl">💬</span>
-                                                <div>
-                                                    <p className="text-sm font-bold text-[var(--text-primary)]">Нові повідомлення</p>
-                                                    <p className="text-xs text-[var(--text-secondary)]">{unreadCount} непрочитаних від адміна</p>
-                                                </div>
-                                            </Link>
-                                        ) : (
+                                        {totalCount === 0 ? (
                                             <div className="px-4 py-6 text-center text-sm text-[var(--text-secondary)]">Немає нових сповіщень</div>
+                                        ) : (
+                                            <>
+                                                {unreadCount > 0 && (
+                                                    <Link href="/profile" onClick={() => setShowNotifications(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-secondary)] transition">
+                                                        <span className="text-xl">💬</span>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-[var(--text-primary)]">Нові повідомлення</p>
+                                                            <p className="text-xs text-[var(--text-secondary)]">{unreadCount} непрочитаних від адміна</p>
+                                                        </div>
+                                                    </Link>
+                                                )}
+                                                {newBadgeCount > 0 && (
+                                                    <Link href="/profile" onClick={() => setShowNotifications(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-secondary)] transition">
+                                                        <span className="text-xl">🏅</span>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-[var(--text-primary)]">Нові бейджі</p>
+                                                            <p className="text-xs text-[var(--text-secondary)]">Ви отримали {newBadgeCount} нових досягнень</p>
+                                                        </div>
+                                                    </Link>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 )}
@@ -113,33 +130,22 @@ export default function Header() {
                                         {user.avatar ? (
                                             <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
-                                            <span className="text-gray-600 font-bold">
-                                                {(user.name?.[0] || 'U').toUpperCase()}
-                                            </span>
+                                            <span className="text-gray-600 font-bold">{(user.name?.[0] || 'U').toUpperCase()}</span>
                                         )}
                                     </div>
                                 </Link>
-                                <button onClick={logout} className="text-sm text-red-600 font-medium hover:text-red-800">
-                                    Вийти
-                                </button>
+                                <button onClick={logout} className="text-sm text-red-600 font-medium hover:text-red-800">Вийти</button>
                             </>
                         ) : (
                             <>
-                                <Link href="/login" className="text-[var(--text-primary)] font-medium hover:opacity-70 px-3 py-2 transition">
-                                    Увійти
-                                </Link>
-                                <Link href="/register" className="bg-black dark:bg-white dark:text-black text-white px-4 py-2 rounded-lg font-medium hover:opacity-80 transition">
-                                    Реєстрація
-                                </Link>
+                                <Link href="/login" className="text-[var(--text-primary)] font-medium hover:opacity-70 px-3 py-2 transition">Увійти</Link>
+                                <Link href="/register" className="bg-black dark:bg-white dark:text-black text-white px-4 py-2 rounded-lg font-medium hover:opacity-80 transition">Реєстрація</Link>
                             </>
                         )}
                     </div>
 
                     <div className="md:hidden flex items-center gap-2">
-                        <button
-                            onClick={toggle}
-                            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center"
-                        >
+                        <button onClick={toggle} className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center">
                             {isDark ? '☀️' : '🌙'}
                         </button>
                         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-[var(--text-secondary)] p-2">☰</button>

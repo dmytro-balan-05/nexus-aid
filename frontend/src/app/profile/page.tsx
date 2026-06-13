@@ -141,20 +141,29 @@ export default function ProfilePage() {
         if (!isLoading && !user) router.push('/login');
     }, [user, isLoading, router]);
 
-    useEffect(() => {
-        if (user) {
-            const knownBadgeIds = JSON.parse(localStorage.getItem('known_badge_ids') || '[]') as string[];
+    const storedBadgeIds = localStorage.getItem('known_badge_ids');
+    const knownBadgeIds = storedBadgeIds !== null ? JSON.parse(storedBadgeIds) as string[] : null;
 
-            api.get<GamificationData>('/gamification/me').then((data) => {
-                if (data) {
-                    setGamification(data);
-                    if (knownBadgeIds.length > 0) {
-                        const newBadges = data.badges.filter(b => !knownBadgeIds.includes(b.key));
-                        newBadges.forEach((b) => addToast(`🏅 Новий бейдж: ${b.name}`, 'badge', b.icon));
-                    }
-                    localStorage.setItem('known_badge_ids', JSON.stringify(data.badges.map(b => b.key)));
+    const knownRole = localStorage.getItem('known_role');
+    if (knownRole && knownRole !== user.role && user.role === 'volonteer') {
+        addToast('🎉 Вашу заявку схвалено! Ви тепер волонтер', 'success', '🎉');
+    }
+    localStorage.setItem('known_role', user.role);
+
+    api.get<GamificationData>('/gamification/me').then((data) => {
+        if (data) {
+            setGamification(data);
+            if (knownBadgeIds !== null) {
+                const newBadges = data.badges.filter(b => !knownBadgeIds.includes(b.key));
+                if (newBadges.length > 0) {
+                    newBadges.forEach((b) => addToast(`🏅 Новий бейдж: ${b.name}`, 'badge', b.icon));
+                    const prev = parseInt(localStorage.getItem('new_badge_count') || '0');
+                    localStorage.setItem('new_badge_count', String(prev + newBadges.length));
                 }
-            });
+            }
+            localStorage.setItem('known_badge_ids', JSON.stringify(data.badges.map(b => b.key)));
+        }
+    });
             fetch('/api/donations/my', { credentials: 'include' })
                 .then((r) => r.ok ? r.json() : [])
                 .then(setDonations)

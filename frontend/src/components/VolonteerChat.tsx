@@ -25,11 +25,13 @@ export default function VolonteerChat() {
     const [isSending, setIsSending] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [connected, setConnected] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
     const socketRef = useRef<Socket | null>(null);
 
     const scrollToBottom = () => {
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
     };
 
     const loadChat = async () => {
@@ -37,7 +39,6 @@ export default function VolonteerChat() {
             const res = await fetch('/api/chat/me', { credentials: 'include' });
             const data = await res.json();
             setChat(data);
-            scrollToBottom();
         } catch {}
     };
 
@@ -82,20 +83,14 @@ export default function VolonteerChat() {
                     transports: ['websocket', 'polling'],
                 });
 
-                socket.on('connect', () => {
-                    setConnected(true);
-                    console.log('[WS] Connected to chat');
-                });
-
-                socket.on('disconnect', () => {
-                    setConnected(false);
-                });
+                socket.on('connect', () => setConnected(true));
+                socket.on('disconnect', () => setConnected(false));
 
                 socket.on('new_message', (message: ChatMessage) => {
                     setChat(prev => {
                         if (!prev) return prev;
                         if (prev.messages.some(m => m.id === message.id)) return prev;
-                        scrollToBottom();
+                        setTimeout(scrollToBottom, 50);
                         return { ...prev, messages: [...prev.messages, message] };
                     });
                     markAsRead();
@@ -104,7 +99,6 @@ export default function VolonteerChat() {
                 socketRef.current = socket;
             })
             .catch(() => {
-                // Fallback to polling if WebSocket fails
                 const interval = setInterval(() => { loadChat(); markAsRead(); }, 5000);
                 return () => clearInterval(interval);
             });
@@ -134,7 +128,7 @@ export default function VolonteerChat() {
                 const msg = await res.json();
                 setChat(prev => prev ? { ...prev, messages: [...prev.messages, msg] } : prev);
                 setNewMessage('');
-                scrollToBottom();
+                setTimeout(scrollToBottom, 50);
             }
         } catch {
             alert('Помилка відправки');
@@ -168,7 +162,7 @@ export default function VolonteerChat() {
 
             {isOpen && (
                 <div className="border border-[var(--border)] rounded-xl overflow-hidden">
-                    <div className="p-4 space-y-3 min-h-32 max-h-64 overflow-y-auto">
+                    <div ref={chatContainerRef} className="p-4 space-y-3 min-h-32 max-h-64 overflow-y-auto">
                         {!chat ? (
                             <p className="text-center text-[var(--text-secondary)] text-sm py-4">Завантаження...</p>
                         ) : chat.messages.length === 0 ? (
@@ -188,7 +182,6 @@ export default function VolonteerChat() {
                                 </div>
                             ))
                         )}
-                        <div ref={messagesEndRef} />
                     </div>
                     <div className="px-4 pb-4 flex gap-2 border-t border-[var(--border)] pt-3">
                         <input
@@ -198,11 +191,7 @@ export default function VolonteerChat() {
                             placeholder="Написати повідомлення..."
                             className="flex-1 border border-[var(--border)] rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-[var(--bg-primary)] text-[var(--text-primary)]"
                         />
-                        <button
-                            onClick={handleSend}
-                            disabled={isSending || !newMessage.trim()}
-                            className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition"
-                        >→</button>
+                        <button onClick={handleSend} disabled={isSending || !newMessage.trim()} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition">→</button>
                     </div>
                 </div>
             )}
