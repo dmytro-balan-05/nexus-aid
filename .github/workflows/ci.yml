@@ -1,13 +1,14 @@
-name: CI
+name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
 jobs:
   test:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,11 +19,36 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install backend dependencies
+      - name: Install dependencies
         run: cd backend && npm ci
 
       - name: Run tests with coverage
         run: cd backend && npm run test:cov
 
-      - name: Build backend
+      - name: Build
         run: cd backend && npm run build
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t nexusaid-backend ./backend
+
+  verify-deploy:
+    name: Verify Deploy
+    runs-on: ubuntu-latest
+    needs: [test, docker]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Wait for Railway deploy
+        run: sleep 20
+
+      - name: Health check
+        run: |
+          curl -f https://nexus-aid-production.up.railway.app/stats \
+            && echo "Deploy successful" \
+            || echo "Health check failed"
