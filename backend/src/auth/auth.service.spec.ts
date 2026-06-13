@@ -3,8 +3,7 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { GamificationService } from '../gamification/gamification.service';
-import { MailService } from '../mail/mail.service';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 describe('AuthService', () => {
@@ -27,10 +26,6 @@ describe('AuthService', () => {
     grantBadgeSystem: jest.fn().mockResolvedValue(undefined),
   };
 
-  const mockMail = {
-    sendVerificationCode: jest.fn().mockResolvedValue(true),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -38,7 +33,6 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
         { provide: GamificationService, useValue: mockGamification },
-        { provide: MailService, useValue: mockMail },
       ],
     }).compile();
     service = module.get<AuthService>(AuthService);
@@ -58,7 +52,6 @@ describe('AuthService', () => {
         password: hashedPassword,
         name: 'Test',
       });
-
       const result = await service.validateUser('test@test.com', 'password123');
       expect(result).toBeDefined();
       expect(result.password).toBeUndefined();
@@ -72,7 +65,6 @@ describe('AuthService', () => {
         email: 'test@test.com',
         password: hashedPassword,
       });
-
       const result = await service.validateUser('test@test.com', 'wrongpass');
       expect(result).toBeNull();
     });
@@ -82,38 +74,52 @@ describe('AuthService', () => {
       const result = await service.validateUser('noone@test.com', 'pass');
       expect(result).toBeNull();
     });
+
+    it('should return null for OAuth user without password', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: 'oauth@test.com',
+        password: null,
+      });
+      const result = await service.validateUser('oauth@test.com', 'anypass');
+      expect(result).toBeNull();
+    });
   });
 
   describe('login', () => {
-    it('should return access_token for verified user', async () => {
+    it('should return access_token and user data', async () => {
       const user = {
         id: '1',
         email: 'test@test.com',
         role: 'user',
         name: 'Test',
-        isVerified: true,
       };
       const result = await service.login(user);
       expect(result.access_token).toBe('mock-token');
+      expect(result.userId).toBe('1');
+      expect(result.role).toBe('user');
     });
 
-    it('should throw UnauthorizedException for unverified user', async () => {
+    it('should sign JWT with correct payload', async () => {
       const user = {
-        id: '1',
-        email: 'test@test.com',
-        role: 'user',
-        name: 'Test',
-        isVerified: false,
+        id: '42',
+        email: 'admin@test.com',
+        role: 'admin',
+        name: 'Admin',
       };
-      await expect(service.login(user)).rejects.toThrow(UnauthorizedException);
+      await service.login(user);
+      expect(mockJwt.sign).toHaveBeenCalledWith({
+        username: 'admin@test.com',
+        sub: '42',
+        role: 'admin',
+      });
     });
   });
 
   describe('register', () => {
-    it('should throw BadRequestException if verified user already exists', async () => {
+    it('should throw BadRequestException if user already exists', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         email: 'exists@test.com',
-        isVerified: true,
       });
       await expect(
         service.register({
@@ -124,25 +130,108 @@ describe('AuthService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should create user and return requiresVerification', async () => {
+    it('should create user and return access_token', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.user.create.mockResolvedValue({
         id: '2',
         email: 'new@test.com',
+        role: 'user',
+        name: 'New',
       });
-
       const result = await service.register({
         email: 'new@test.com',
         password: 'pass123',
         name: 'NewUser',
       });
+      expect(result.access_token).toBe('mock-token');
+    });
 
-      expect(result.requiresVerification).toBe(true);
-      expect(result.email).toBe('new@test.com');
-      expect(mockMail.sendVerificationCode).toHaveBeenCalledWith(
-        'new@test.com',
-        expect.any(String),
+    it('should grant welcome badge after registration', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue({
+        id: '3',
+        email: 'new2@test.com',
+        role: 'user',
+        name: 'New2',
+      });
+      await service.register({
+        email: 'new2@test.com',
+        password: 'pass123',
+        name: 'New2',
+      });
+      expect(mockGamification.grantBadgeSystem).toHaveBeenCalledWith(
+        '3',
+        'welcome',
       );
+    });
+  });
+
+  describe('validateOAuthUser', () => {
+    it('should return existing OAuth user', async () => {
+      const existingUser = {
+        id: '1',
+        email: 'oauth@test.com',
+        provider: 'google',
+        socialId: '123',
+      };
+      mockPrisma.user.findFirst.mockResolvedValue(existingUser);
+      const result = await service.validateOAuthUser({
+        email: 'oauth@test.com',
+        name: 'OAuth User',
+        provider: 'google',
+        socialId: '123',
+      });
+      expect(result).toEqual(existingUser);
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('should create new user for first OAuth login', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      const newUser = {
+        id: '3',
+        email: 'new@google.com',
+        provider: 'google',
+        socialId: '456',
+      };
+      mockPrisma.user.create.mockResolvedValue(newUser);
+      const result = await service.validateOAuthUser({
+        email: 'new@google.com',
+        name: 'Google User',
+        provider: 'google',
+        socialId: '456',
+      });
+      expect(result).toEqual(newUser);
+      expect(mockGamification.grantBadgeSystem).toHaveBeenCalledWith(
+        '3',
+        'welcome',
+      );
+    });
+
+    it('should link OAuth to existing email account', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      const existingUser = {
+        id: '5',
+        email: 'existing@test.com',
+        provider: 'local',
+        socialId: null,
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(existingUser);
+      mockPrisma.user.update.mockResolvedValue({
+        ...existingUser,
+        provider: 'google',
+        socialId: '789',
+      });
+      await service.validateOAuthUser({
+        email: 'existing@test.com',
+        name: 'Existing',
+        provider: 'google',
+        socialId: '789',
+      });
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: '5' },
+        data: { provider: 'google', socialId: '789' },
+      });
     });
   });
 });
