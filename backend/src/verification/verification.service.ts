@@ -6,12 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
+import { ChatGateway } from '../chat/chat.gateway';
 
 @Injectable()
 export class VerificationService {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
+    private chatGateway: ChatGateway,
   ) {}
 
   async submitRequest(
@@ -28,12 +30,10 @@ export class VerificationService {
     });
 
     if (existing) {
-      if (existing.status === 'approved') {
+      if (existing.status === 'approved')
         throw new BadRequestException('Ви вже верифіковані');
-      }
-      if (existing.status === 'pending') {
+      if (existing.status === 'pending')
         throw new BadRequestException('Заявка вже на розгляді');
-      }
       return this.prisma.verificationRequest.update({
         where: { userId },
         data: { ...data, status: 'pending' },
@@ -95,7 +95,6 @@ export class VerificationService {
         },
       },
     });
-
     if (!request) throw new NotFoundException('Заявку не знайдено');
     return request;
   }
@@ -109,12 +108,9 @@ export class VerificationService {
     const request = await this.prisma.verificationRequest.findUnique({
       where: { id: requestId },
     });
-
     if (!request) throw new NotFoundException('Заявку не знайдено');
-
-    if (!isAdmin && request.userId !== senderId) {
+    if (!isAdmin && request.userId !== senderId)
       throw new ForbiddenException('Немає доступу');
-    }
 
     return this.prisma.verificationMessage.create({
       data: { requestId, senderId, text, isAdmin },
@@ -133,7 +129,6 @@ export class VerificationService {
       where: { id },
       include: { user: true },
     });
-
     if (!request) throw new NotFoundException('Заявку не знайдено');
 
     await this.prisma.verificationRequest.update({
@@ -146,6 +141,7 @@ export class VerificationService {
         where: { id: request.userId },
         data: { role: 'volonteer' },
       });
+      this.chatGateway.emitVerificationApproved(request.userId);
     }
 
     await this.prisma.verificationMessage.create({

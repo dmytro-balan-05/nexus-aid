@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nexus-aid-production.up.railway.app';
+import { useNotification } from '@/context/NotificationContext';
 
 interface ChatMessage {
     id: string;
@@ -19,14 +17,13 @@ interface Chat {
 }
 
 export default function VolonteerChat() {
+    const { socket, unreadChatCount, setUnreadChatCount, setIsChatOpen } = useNotification();
     const [chat, setChat] = useState<Chat | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
     const [connected, setConnected] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
-    const socketRef = useRef<Socket | null>(null);
 
     const scrollToBottom = () => {
         if (chatContainerRef.current) {
@@ -39,83 +36,59 @@ export default function VolonteerChat() {
             const res = await fetch('/api/chat/me', { credentials: 'include' });
             const data = await res.json();
             setChat(data);
-        } catch {}
-    };
-
-    const loadUnread = async () => {
-        try {
-            const res = await fetch('/api/chat/me/unread', { credentials: 'include' });
-            const data = await res.json();
-            setUnreadCount(typeof data === 'number' ? data : 0);
+            setTimeout(scrollToBottom, 50);
         } catch {}
     };
 
     const markAsRead = async () => {
         try {
             await fetch('/api/chat/me/read', { method: 'POST', credentials: 'include' });
-            setUnreadCount(0);
+            setUnreadChatCount(0);
         } catch {}
     };
 
     useEffect(() => {
-        loadUnread();
-        const interval = setInterval(loadUnread, 30000);
-        return () => clearInterval(interval);
-    }, []);
+        if (!socket) return;
+        setConnected(socket.connected);
+        const onConnect = () => setConnected(true);
+        const onDisconnect = () => setConnected(false);
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        return () => {
+            socket.off('connect', onConnect);
+            socket.off('disconnect', onDisconnect);
+        };
+    }, [socket]);
 
     useEffect(() => {
-        if (!isOpen) {
-            socketRef.current?.disconnect();
-            socketRef.current = null;
-            setConnected(false);
-            loadUnread();
-            return;
-        }
-
-        loadChat();
-        markAsRead();
-
-        fetch('/api/auth/ws-token', { credentials: 'include' })
-            .then(r => r.json())
-            .then(({ token }) => {
-                const socket = io(`${BACKEND_URL}/chat`, {
-                    auth: { token },
-                    transports: ['websocket', 'polling'],
-                });
-
-                socket.on('connect', () => setConnected(true));
-                socket.on('disconnect', () => setConnected(false));
-
-                socket.on('new_message', (message: ChatMessage) => {
-                    setChat(prev => {
-                        if (!prev) return prev;
-                        if (prev.messages.some(m => m.id === message.id)) return prev;
-                        setTimeout(scrollToBottom, 50);
-                        return { ...prev, messages: [...prev.messages, message] };
-                    });
-                    markAsRead();
-                });
-
-                socketRef.current = socket;
-            })
-            .catch(() => {
-                const interval = setInterval(() => { loadChat(); markAsRead(); }, 5000);
-                return () => clearInterval(interval);
+        if (!socket || !isOpen) return;
+        const onNewMessage = (message: ChatMessage) => {
+            setChat(prev => {
+                if (!prev) return prev;
+                if (prev.messages.some(m => m.id === message.id)) return prev;
+                setTimeout(scrollToBottom, 50);
+                return { ...prev, messages: [...prev.messages, message] };
             });
-
-        return () => {
-            socketRef.current?.disconnect();
-            socketRef.current = null;
-            setConnected(false);
+            if (message.isAdmin) markAsRead();
         };
+        socket.on('new_message', onNewMessage);
+        return () => { socket.off('new_message', onNewMessage); };
+    }, [socket, isOpen]);
+
+    useEffect(() => {
+        setIsChatOpen(isOpen);
+        if (isOpen) {
+            loadChat();
+            markAsRead();
+        }
     }, [isOpen]);
 
     const handleSend = async () => {
         if (!newMessage.trim() || !chat) return;
         setIsSending(true);
         try {
-            if (socketRef.current?.connected) {
-                socketRef.current.emit('send_message', { text: newMessage });
+            if (socket?.connected) {
+                socket.emit('send_message', { text: newMessage });
                 setNewMessage('');
             } else {
                 const res = await fetch('/api/chat/me/message', {
@@ -152,9 +125,9 @@ export default function VolonteerChat() {
                     className="relative bg-black dark:bg-white dark:text-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:opacity-80 transition"
                 >
                     {isOpen ? 'Згорнути' : 'Відкрити чат'}
-                    {!isOpen && unreadCount > 0 && (
+                    {!isOpen && unreadChatCount > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
-                            {unreadCount > 9 ? '9+' : unreadCount}
+                            {unreadChatCount > 9 ? '9+' : unreadChatCount}
                         </span>
                     )}
                 </button>

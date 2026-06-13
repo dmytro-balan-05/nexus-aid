@@ -5,85 +5,23 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useNotification } from '@/context/NotificationContext';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import QuickDonateButton from './QuickDonateButton';
 
 export default function Header() {
     const { user, logout } = useAuth();
     const { isDark, toggle } = useTheme();
-    const { addToast } = useNotification();
+    const { unreadChatCount, newBadgeCount, setNewBadgeCount } = useNotification();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [newBadgeCount, setNewBadgeCount] = useState(0);
     const pathname = usePathname();
     const isHome = pathname === '/';
 
-    useEffect(() => {
-        if (!user) return;
-
-        const knownRole = localStorage.getItem('known_role');
-        if (knownRole && knownRole !== user.role && user.role === 'volonteer') {
-            addToast('🎉 Вашу заявку схвалено! Ви тепер волонтер', 'success', '🎉');
-        }
-        localStorage.setItem('known_role', user.role);
-
-        const checkBadges = async () => {
-            try {
-                const res = await fetch('/api/gamification/me', { credentials: 'include' });
-                if (!res.ok) return;
-                const data = await res.json();
-                const badges: { key: string; name: string; icon: string }[] = data.badges || [];
-
-                const storedBadgeIds = localStorage.getItem('known_badge_ids');
-                const knownBadgeIds = storedBadgeIds !== null ? JSON.parse(storedBadgeIds) as string[] : null;
-
-                if (knownBadgeIds !== null) {
-                    const newBadges = badges.filter(b => !knownBadgeIds.includes(b.key));
-                    if (newBadges.length > 0) {
-                        newBadges.forEach(b => addToast(`🏅 Новий бейдж: ${b.name}`, 'badge', b.icon));
-                        const prev = parseInt(localStorage.getItem('new_badge_count') || '0');
-                        const updated = prev + newBadges.length;
-                        localStorage.setItem('new_badge_count', String(updated));
-                        setNewBadgeCount(updated);
-                    }
-                }
-                localStorage.setItem('known_badge_ids', JSON.stringify(badges.map(b => b.key)));
-            } catch {}
-        };
-
-        setNewBadgeCount(parseInt(localStorage.getItem('new_badge_count') || '0'));
-        checkBadges();
-
-        const handleStorage = () => {
-            setNewBadgeCount(parseInt(localStorage.getItem('new_badge_count') || '0'));
-        };
-        window.addEventListener('storage', handleStorage);
-        return () => window.removeEventListener('storage', handleStorage);
-    }, [user]);
-
-    useEffect(() => {
-        if (user?.role !== 'volonteer') return;
-        const fetchUnread = async () => {
-            try {
-                const res = await fetch('/api/chat/me/unread', { credentials: 'include' });
-                const data = await res.json();
-                setUnreadCount(typeof data === 'number' ? data : 0);
-            } catch {}
-        };
-        fetchUnread();
-        const interval = setInterval(fetchUnread, 30000);
-        return () => clearInterval(interval);
-    }, [user]);
-
-    const totalCount = unreadCount + newBadgeCount;
+    const totalCount = unreadChatCount + newBadgeCount;
 
     const handleBellClick = () => {
         setShowNotifications(p => !p);
-        if (!showNotifications) {
-            localStorage.setItem('new_badge_count', '0');
-            setNewBadgeCount(0);
-        }
+        if (!showNotifications) setNewBadgeCount(0);
     };
 
     return (
@@ -129,12 +67,12 @@ export default function Header() {
                                             <div className="px-4 py-6 text-center text-sm text-[var(--text-secondary)]">Немає нових сповіщень</div>
                                         ) : (
                                             <>
-                                                {unreadCount > 0 && (
+                                                {unreadChatCount > 0 && (
                                                     <Link href="/profile" onClick={() => setShowNotifications(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-secondary)] transition">
                                                         <span className="text-xl">💬</span>
                                                         <div>
                                                             <p className="text-sm font-bold text-[var(--text-primary)]">Нові повідомлення</p>
-                                                            <p className="text-xs text-[var(--text-secondary)]">{unreadCount} непрочитаних від адміна</p>
+                                                            <p className="text-xs text-[var(--text-secondary)]">{unreadChatCount} непрочитаних від адміна</p>
                                                         </div>
                                                     </Link>
                                                 )}

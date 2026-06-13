@@ -45,7 +45,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.data.userId = payload.sub;
       client.join(`chat:${payload.sub}`);
-      console.log(`[WS] User ${payload.sub} connected to chat`);
+      client.join(`user:${payload.sub}`);
+      console.log(`[WS] User ${payload.sub} connected`);
     } catch {
       client.disconnect();
     }
@@ -77,5 +78,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitToUser(userId: string, message: any) {
     this.server.to(`chat:${userId}`).emit('new_message', message);
+  }
+
+  emitVerificationApproved(userId: string) {
+    this.server.to(`user:${userId}`).emit('verification_approved');
   }
 }
