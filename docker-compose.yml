@@ -18,30 +18,41 @@ services:
       retries: 5
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      target: builder
     ports:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/nexusaid
-      JWT_SECRET: ${JWT_SECRET}
-      WFP_MERCHANT_ACCOUNT: ${WFP_MERCHANT_ACCOUNT}
-      WFP_SECRET_KEY: ${WFP_SECRET_KEY}
-      WFP_MERCHANT_DOMAIN: ${WFP_MERCHANT_DOMAIN}
-      WFP_RETURN_URL: ${WFP_RETURN_URL}
-      WFP_SERVICE_URL: ${WFP_SERVICE_URL}
+      JWT_SECRET: ${JWT_SECRET:-nexusaid_local_dev_secret}
+      PORT: 3000
+      FRONTEND_URL: http://localhost:3001
+      WFP_MERCHANT_ACCOUNT: ${WFP_MERCHANT_ACCOUNT:-local}
+      WFP_SECRET_KEY: ${WFP_SECRET_KEY:-local}
+      WFP_MERCHANT_DOMAIN: ${WFP_MERCHANT_DOMAIN:-localhost}
+      WFP_RETURN_URL: http://localhost:3001/donations/result
+      WFP_SERVICE_URL: http://localhost:3000/donations/webhook
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
     command: sh -c "npx prisma migrate deploy && node dist/main.js"
+    restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+        INTERNAL_API_URL: http://backend:3000
     ports:
       - "3001:3001"
-    environment:
-      NEXT_PUBLIC_API_URL: http://backend:3000
     depends_on:
       - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  uploads:
