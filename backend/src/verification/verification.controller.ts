@@ -13,6 +13,13 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { VerificationService } from './verification.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -30,11 +37,15 @@ const storageConfig = diskStorage({
   },
 });
 
+@ApiTags('verification')
+@ApiBearerAuth('JWT')
 @Controller('verification')
 @UseGuards(JwtAuthGuard)
 export class VerificationController {
   constructor(private readonly verificationService: VerificationService) {}
 
+  @ApiOperation({ summary: 'Подати заявку на верифікацію волонтера' })
+  @ApiConsumes('multipart/form-data')
   @Post()
   @UseInterceptors(
     FilesInterceptor('documents', 5, {
@@ -47,12 +58,9 @@ export class VerificationController {
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
   ) {
-    if (!body.about || !body.experience) {
+    if (!body.about || !body.experience)
       throw new BadRequestException('Заповніть всі обовʼязкові поля');
-    }
-
     const documents = files ? files.map((f) => `/uploads/${f.filename}`) : [];
-
     return this.verificationService.submitRequest(req.user.id, {
       about: body.about,
       experience: body.experience,
@@ -61,38 +69,47 @@ export class VerificationController {
     });
   }
 
+  @ApiOperation({ summary: 'Моя заявка на верифікацію' })
   @Get('me')
   getMyRequest(@Request() req) {
     return this.verificationService.getMyRequest(req.user.id);
   }
 
+  @ApiOperation({ summary: '[Admin] Всі заявки' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'approved', 'rejected'],
+  })
   @Get()
   getAllRequests(@Request() req, @Query('status') status?: string) {
     if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
     return this.verificationService.getAllRequests(status);
   }
 
+  @ApiOperation({ summary: '[Admin] Деталі заявки' })
   @Get(':id')
   getById(@Param('id') id: string, @Request() req) {
     if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
     return this.verificationService.getRequestById(id);
   }
 
+  @ApiOperation({ summary: 'Написати повідомлення до заявки' })
   @Post(':id/message')
   sendMessage(
     @Param('id') id: string,
     @Body() body: { text: string },
     @Request() req,
   ) {
-    const isAdmin = req.user.role === 'admin';
     return this.verificationService.sendMessage(
       id,
       req.user.id,
       body.text,
-      isAdmin,
+      req.user.role === 'admin',
     );
   }
 
+  @ApiOperation({ summary: '[Admin] Схвалити або відхилити заявку' })
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,

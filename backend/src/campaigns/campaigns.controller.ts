@@ -14,6 +14,13 @@ import {
   UploadedFiles,
   BadRequestException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -41,17 +48,19 @@ const fileFilter = (req, file, cb) => {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new BadRequestException('Недопустимий тип файлу'), false);
-  }
+  allowedTypes.includes(file.mimetype)
+    ? cb(null, true)
+    : cb(new BadRequestException('Недопустимий тип файлу'), false);
 };
 
+@ApiTags('campaigns')
 @Controller('campaigns')
 export class CampaignsController {
   constructor(private readonly campaignsService: CampaignsService) {}
 
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Створити новий збір (тільки волонтери)' })
+  @ApiConsumes('multipart/form-data')
   @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(
@@ -69,7 +78,6 @@ export class CampaignsController {
     const documentPaths = files
       ? files.map((f) => `/uploads/${f.filename}`)
       : [];
-
     const createCampaignDto: CreateCampaignDto = {
       title: body.title,
       shortDescription: body.shortDescription,
@@ -83,15 +91,19 @@ export class CampaignsController {
       isUrgent: body.isUrgent === 'true' || body.isUrgent === true,
       urgentUntil: body.urgentUntil ? String(body.urgentUntil) : undefined,
     };
-
     const authorId = req.user.userId || req.user.id || req.user.sub;
     return this.campaignsService.create(createCampaignDto, authorId);
   }
 
+  @ApiOperation({ summary: 'Отримати випадкові збори (опційно за категорією)' })
+  @ApiQuery({ name: 'category', required: false })
   @Get('random')
   getRandom(@Query('category') category?: string) {
     return this.campaignsService.getRandomByCategory(category);
   }
+
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Видалити збір (тільки адмін)' })
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteCampaign(@Param('id') id: string, @Request() req) {
@@ -100,6 +112,8 @@ export class CampaignsController {
     return this.campaignsService.delete(id);
   }
 
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Оновити збір' })
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   @UseInterceptors(
@@ -126,11 +140,16 @@ export class CampaignsController {
     return this.campaignsService.update(id, updateCampaignDto, req.user.id);
   }
 
+  @ApiOperation({ summary: 'Термінові збори згруповані за категоріями' })
   @Get('urgent')
   getUrgent() {
     return this.campaignsService.getUrgentByCategory();
   }
 
+  @ApiOperation({ summary: 'Список всіх зборів з пошуком та фільтрацією' })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'sort', required: false, enum: ['asc', 'desc'] })
+  @ApiQuery({ name: 'category', required: false })
   @Get()
   findAll(
     @Query('search') search?: string,
@@ -140,6 +159,7 @@ export class CampaignsController {
     return this.campaignsService.findAll(search, sort, category);
   }
 
+  @ApiOperation({ summary: 'Отримати збір за ID' })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.campaignsService.findOne(id);

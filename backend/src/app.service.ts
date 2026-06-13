@@ -5,8 +5,21 @@ import { PrismaService } from './prisma.service';
 export class AppService {
   constructor(private prisma: PrismaService) {}
 
-  getHello(): string {
-    return 'Hello World!';
+  async healthCheck() {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return {
+        status: 'ok',
+        database: 'connected',
+        timestamp: new Date().toISOString(),
+      };
+    } catch {
+      return {
+        status: 'error',
+        database: 'disconnected',
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
 
   async getStats() {
@@ -16,5 +29,9 @@ export class AppService {
       this.prisma.user.count({ where: { role: 'volonteer' } }),
     ]);
     return { campaigns, donations, volunteers };
+  }
+
+  getHello(): string {
+    return 'Hello World!';
   }
 }

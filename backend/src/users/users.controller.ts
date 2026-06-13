@@ -10,11 +10,19 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 
+@ApiTags('users')
+@ApiBearerAuth('JWT')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
@@ -23,17 +31,26 @@ export class UsersController {
     private readonly gamificationService: GamificationService,
   ) {}
 
+  @ApiOperation({ summary: 'Мій профіль' })
   @Get('me')
   getProfile(@Request() req) {
     return this.usersService.getProfile(req.user.id);
   }
 
+  @ApiOperation({ summary: 'Публічний профіль користувача' })
   @Get(':id/profile')
   async getPublicProfile(@Param('id') id: string, @Request() req) {
     await this.gamificationService.processProfileView(req.user.id, id);
     return this.usersService.getPublicProfile(id);
   }
 
+  @ApiOperation({ summary: '[Admin] Список всіх користувачів' })
+  @ApiQuery({ name: 'q', required: false })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: ['user', 'volonteer', 'admin'],
+  })
   @Get()
   async getAll(
     @Query('q') q: string,
@@ -44,12 +61,14 @@ export class UsersController {
     return this.usersService.getAll(q, role);
   }
 
+  @ApiOperation({ summary: '[Admin] Деталі користувача' })
   @Get(':id')
   async getUserDetails(@Param('id') id: string, @Request() req) {
     if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
     return this.usersService.getUserDetails(id);
   }
 
+  @ApiOperation({ summary: 'Оновити свій профіль' })
   @Patch('me')
   async updateProfile(@Request() req, @Body() dto: UpdateUserDto) {
     const result = await this.usersService.updateProfile(req.user.id, dto);
@@ -57,6 +76,7 @@ export class UsersController {
     return result;
   }
 
+  @ApiOperation({ summary: '[Admin] Змінити роль користувача' })
   @Patch(':id/role')
   async changeRole(
     @Param('id') id: string,
@@ -67,6 +87,7 @@ export class UsersController {
     return this.usersService.changeRole(id, body.role, req.user);
   }
 
+  @ApiOperation({ summary: '[Admin] Відкликати бейдж у користувача' })
   @Delete(':id/badges/:badgeKey')
   async revokeBadge(
     @Param('id') userId: string,
@@ -77,6 +98,8 @@ export class UsersController {
     return this.gamificationService.revokeBadge(userId, badgeKey);
   }
 
+  @ApiOperation({ summary: '[Admin] Видалити користувача' })
+  @ApiQuery({ name: 'reason', required: false })
   @Delete(':id')
   async deleteUser(
     @Param('id') id: string,
