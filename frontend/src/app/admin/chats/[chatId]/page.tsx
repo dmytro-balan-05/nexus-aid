@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useNotification } from '@/context/NotificationContext';
 
 interface ChatMessage {
     id: string;
@@ -20,27 +21,26 @@ interface Chat {
 export default function AdminChatDetailPage() {
     const { chatId } = useParams<{ chatId: string }>();
     const router = useRouter();
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const prevMessageCount = useRef(0);
+    const { socket, setAdminUnreadCount } = useNotification();
+    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const [chat, setChat] = useState<Chat | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
 
+    const scrollToBottom = () => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    };
+
     const fetchChat = async () => {
         try {
             const res = await fetch(`/api/chat/admin/${chatId}`, { credentials: 'include' });
             if (!res.ok) return;
-            const data = await res.json();
-            setChat((prev) => {
-                if (data.messages.length > prevMessageCount.current) {
-                    prevMessageCount.current = data.messages.length;
-                    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-                }
-                return data;
-            });
+            setChat(await res.json());
+            setTimeout(scrollToBottom, 50);
         } finally {
             setIsLoading(false);
         }
@@ -49,20 +49,31 @@ export default function AdminChatDetailPage() {
     const markAsRead = async () => {
         try {
             await fetch(`/api/chat/admin/${chatId}/read`, { method: 'POST', credentials: 'include' });
+            setAdminUnreadCount(prev => Math.max(0, prev - 1));
         } catch {}
     };
 
     useEffect(() => {
         fetchChat();
         markAsRead();
-        pollingRef.current = setInterval(() => {
-            fetchChat();
-            markAsRead();
-        }, 5000);
-        return () => {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-        };
     }, [chatId]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const onNewMessage = (data: any) => {
+            if (data.chatUserId && data.message) {
+                setChat(prev => {
+                    if (!prev) return prev;
+                    if (prev.messages.some((m: ChatMessage) => m.id === data.message.id)) return prev;
+                    setTimeout(scrollToBottom, 50);
+                    return { ...prev, messages: [...prev.messages, data.message] };
+                });
+                markAsRead();
+            }
+        };
+        socket.on('new_message', onNewMessage);
+        return () => { socket.off('new_message', onNewMessage); };
+    }, [socket, chatId]);
 
     const handleSend = async () => {
         if (!newMessage.trim() || !chat) return;
@@ -76,12 +87,10 @@ export default function AdminChatDetailPage() {
             });
             if (!res.ok) throw new Error();
             const msg = await res.json();
-            setChat((prev) => {
+            setChat(prev => {
                 if (!prev) return prev;
-                const updated = { ...prev, messages: [...prev.messages, msg] };
-                prevMessageCount.current = updated.messages.length;
-                setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-                return updated;
+                setTimeout(scrollToBottom, 50);
+                return { ...prev, messages: [...prev.messages, msg] };
             });
             setNewMessage('');
         } catch {
@@ -111,7 +120,7 @@ export default function AdminChatDetailPage() {
                     </div>
                 </div>
 
-                <div className="p-4 space-y-3 min-h-64 max-h-96 overflow-y-auto">
+                <div ref={chatContainerRef} className="p-4 space-y-3 min-h-64 max-h-96 overflow-y-auto">
                     {chat.messages.length === 0 ? (
                         <p className="text-center text-gray-300 text-sm py-10">Повідомлень ще немає</p>
                     ) : (
@@ -129,7 +138,6 @@ export default function AdminChatDetailPage() {
                             </div>
                         ))
                     )}
-                    <div ref={messagesEndRef} />
                 </div>
 
                 <div className="px-4 pb-4 flex gap-2">

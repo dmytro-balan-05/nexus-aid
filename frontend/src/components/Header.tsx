@@ -11,7 +11,7 @@ import QuickDonateButton from './QuickDonateButton';
 export default function Header() {
     const { user, logout } = useAuth();
     const { isDark, toggle } = useTheme();
-    const { unreadChatCount, newBadgeCount, setNewBadgeCount } = useNotification();
+    const { unreadChatCount, newBadgeCount, setNewBadgeCount, adminUnreadCount } = useNotification();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const pathname = usePathname();
@@ -36,7 +36,14 @@ export default function Header() {
                             <Link href="/campaigns" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">Всі збори</Link>
                             <Link href="/about" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">Про нас</Link>
                             {user?.role === 'admin' && (
-                                <Link href="/admin/users" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">Адмін панель</Link>
+                                <Link href="/admin/users" className="relative text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium transition">
+                                    Адмін панель
+                                    {adminUnreadCount > 0 && (
+                                        <span className="absolute -top-2 -right-4 bg-red-500 text-white text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                                            {adminUnreadCount > 9 ? '9+' : adminUnreadCount}
+                                        </span>
+                                    )}
+                                </Link>
                             )}
                         </nav>
                     </div>
@@ -44,7 +51,7 @@ export default function Header() {
                     <div className="hidden md:flex items-center gap-3">
                         {!isHome && <QuickDonateButton compact />}
 
-                        <button onClick={toggle} className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] transition" title={isDark ? 'Світла тема' : 'Темна тема'}>
+                        <button onClick={toggle} className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] transition">
                             {isDark ? '☀️' : '🌙'}
                         </button>
 
@@ -130,7 +137,9 @@ export default function Header() {
                 <div className="md:hidden border-t border-[var(--border)] p-4 space-y-3 bg-[var(--bg-card)]">
                     <Link href="/campaigns" className="block font-medium text-[var(--text-primary)]">Всі збори</Link>
                     {user?.role === 'admin' && (
-                        <Link href="/admin/users" className="block font-medium text-[var(--text-primary)]">Адмін панель</Link>
+                        <Link href="/admin/users" className="block font-medium text-[var(--text-primary)]">
+                            Адмін панель {adminUnreadCount > 0 && <span className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{adminUnreadCount}</span>}
+                        </Link>
                     )}
                     {!isHome && <QuickDonateButton compact />}
                     {user ? (

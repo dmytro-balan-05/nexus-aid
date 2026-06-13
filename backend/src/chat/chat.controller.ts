@@ -31,8 +31,14 @@ export class ChatController {
   }
 
   @Post('me/message')
-  sendMessage(@Request() req, @Body() body: { text: string }) {
-    return this.chatService.sendMessage(req.user.id, body.text, false);
+  async sendMessage(@Request() req, @Body() body: { text: string }) {
+    const message = await this.chatService.sendMessage(
+      req.user.id,
+      body.text,
+      false,
+    );
+    this.chatGateway.emitAdminNotification(req.user.id, message);
+    return message;
   }
 
   @Post('me/read')
@@ -59,17 +65,13 @@ export class ChatController {
     @Request() req,
   ) {
     if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
-
     const message = await this.chatService.sendMessageAdmin(
       chatId,
       req.user.id,
       body.text,
     );
-
-    // Emit до волонтера в реальному часі
     const userId = await this.chatService.getChatUserId(chatId);
     if (userId) this.chatGateway.emitToUser(userId, message);
-
     return message;
   }
 

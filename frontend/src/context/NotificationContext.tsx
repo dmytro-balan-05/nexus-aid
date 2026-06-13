@@ -18,6 +18,8 @@ interface NotificationContextType {
     setUnreadChatCount: React.Dispatch<React.SetStateAction<number>>;
     newBadgeCount: number;
     setNewBadgeCount: React.Dispatch<React.SetStateAction<number>>;
+    adminUnreadCount: number;
+    setAdminUnreadCount: React.Dispatch<React.SetStateAction<number>>;
     socket: Socket | null;
     setSocket: (socket: Socket | null) => void;
     isChatOpen: boolean;
@@ -32,6 +34,8 @@ const NotificationContext = createContext<NotificationContextType>({
     setUnreadChatCount: () => {},
     newBadgeCount: 0,
     setNewBadgeCount: () => {},
+    adminUnreadCount: 0,
+    setAdminUnreadCount: () => {},
     socket: null,
     setSocket: () => {},
     isChatOpen: false,
@@ -42,6 +46,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const [toasts, setToasts] = useState<Toast[]>([]);
     const [unreadChatCount, setUnreadChatCount] = useState(0);
     const [newBadgeCount, setNewBadgeCount] = useState(0);
+    const [adminUnreadCount, setAdminUnreadCount] = useState(0);
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -60,6 +65,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             toasts, addToast, removeToast,
             unreadChatCount, setUnreadChatCount,
             newBadgeCount, setNewBadgeCount,
+            adminUnreadCount, setAdminUnreadCount,
             socket, setSocket,
             isChatOpen, setIsChatOpen,
         }}>

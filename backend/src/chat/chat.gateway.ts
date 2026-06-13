@@ -22,8 +22,7 @@ import { ChatService } from './chat.service';
   namespace: '/chat',
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer()
-  server: Server;
+  @WebSocketServer() server: Server;
 
   constructor(
     private chatService: ChatService,
@@ -44,16 +43,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }) as any;
 
       client.data.userId = payload.sub;
+      client.data.role = payload.role;
       client.join(`chat:${payload.sub}`);
       client.join(`user:${payload.sub}`);
-      console.log(`[WS] User ${payload.sub} connected`);
+
+      if (payload.role === 'admin') {
+        client.join('admin_room');
+      }
+
+      console.log(`[WS] ${payload.role} ${payload.sub} connected`);
     } catch {
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`[WS] User ${client.data.userId} disconnected`);
+    console.log(`[WS] ${client.data.userId} disconnected`);
   }
 
   @SubscribeMessage('send_message')
@@ -80,7 +85,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`chat:${userId}`).emit('new_message', message);
   }
 
+  emitAdminNotification(chatUserId: string, message: any) {
+    this.server.to('admin_room').emit('new_message', { chatUserId, message });
+  }
+
   emitVerificationApproved(userId: string) {
     this.server.to(`user:${userId}`).emit('verification_approved');
+  }
+
+  emitVerificationMessage(userId: string, message: any) {
+    this.server.to(`user:${userId}`).emit('verification_message', message);
+  }
+
+  emitNewVerificationRequest() {
+    this.server.to('admin_room').emit('new_verification_request');
   }
 }

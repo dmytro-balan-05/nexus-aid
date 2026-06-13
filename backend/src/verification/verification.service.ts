@@ -40,9 +40,11 @@ export class VerificationService {
       });
     }
 
-    return this.prisma.verificationRequest.create({
+    const request = await this.prisma.verificationRequest.create({
       data: { userId, ...data },
     });
+    this.chatGateway.emitNewVerificationRequest();
+    return request;
   }
 
   async getMyRequest(userId: string) {
@@ -112,12 +114,20 @@ export class VerificationService {
     if (!isAdmin && request.userId !== senderId)
       throw new ForbiddenException('Немає доступу');
 
-    return this.prisma.verificationMessage.create({
+    const message = await this.prisma.verificationMessage.create({
       data: { requestId, senderId, text, isAdmin },
       include: {
         sender: { select: { id: true, name: true, avatar: true, role: true } },
       },
     });
+
+    if (isAdmin) {
+      this.chatGateway.emitVerificationMessage(request.userId, message);
+    } else {
+      this.chatGateway.emitNewVerificationRequest();
+    }
+
+    return message;
   }
 
   async updateStatus(
