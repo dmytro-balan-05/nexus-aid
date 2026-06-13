@@ -53,18 +53,21 @@ export default function AdminUsersPage() {
 
         setIsDeleting(true);
         try {
-            const res = await fetch(`/api/users/${deleteTarget.id}`, {
+            const res = await fetch(`/api/users/${deleteTarget.id}?reason=${encodeURIComponent(reason)}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ reason }),
             });
             if (res.ok) {
                 setUsers(prev => prev.filter(u => u.id !== deleteTarget.id));
                 setDeleteTarget(null);
                 setDeleteReason(DELETE_REASONS[0]);
                 setCustomReason('');
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert(`Помилка: ${err.message || res.status}`);
             }
+        } catch (e: any) {
+            alert(`Помилка: ${e.message}`);
         } finally {
             setIsDeleting(false);
         }

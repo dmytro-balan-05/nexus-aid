@@ -80,12 +80,12 @@ export class UsersController {
   @Delete(':id')
   async deleteUser(
     @Param('id') id: string,
-    @Body() body: { reason: string },
+    @Query('reason') reason: string,
     @Request() req,
   ) {
     if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
     if (req.user.id === id)
       throw new ForbiddenException('Cannot delete yourself');
-    return this.usersService.deleteUser(id, body.reason);
+    return this.usersService.deleteUser(id, reason || 'No reason provided');
   }
 }
