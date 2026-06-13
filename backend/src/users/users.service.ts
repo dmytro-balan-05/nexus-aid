@@ -12,7 +12,6 @@ export class UsersService {
 
   async getProfile(userId: string) {
     if (!userId) throw new Error('Unauthorized');
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -26,7 +25,6 @@ export class UsersService {
         createdAt: true,
       },
     });
-
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
@@ -58,7 +56,6 @@ export class UsersService {
         },
       },
     });
-
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
@@ -78,13 +75,7 @@ export class UsersService {
             : {},
         ],
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatar: true,
-      },
+      select: { id: true, email: true, name: true, role: true, avatar: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -114,7 +105,6 @@ export class UsersService {
         },
       },
     });
-
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
@@ -125,23 +115,19 @@ export class UsersService {
     currentUser: any,
   ) {
     const target = await this.prisma.user.findUnique({ where: { id: userId } });
-
     if (!target) throw new NotFoundException('User not found');
     if (target.id === currentUser.id)
       throw new ForbiddenException('You cannot change your own role');
     if (target.role === 'admin')
       throw new ForbiddenException('Cannot change admin role');
-
     return this.prisma.user.update({ where: { id: userId }, data: { role } });
   }
 
   async updateProfile(userId: string, dto: UpdateUserDto) {
     const data: any = {};
-
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.avatar !== undefined)
       data.avatar = dto.avatar === '' ? null : dto.avatar;
-
     return this.prisma.user.update({
       where: { id: userId },
       data,
@@ -154,5 +140,32 @@ export class UsersService {
         updatedAt: true,
       },
     });
+  }
+
+  async deleteUser(userId: string, reason: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    console.log(`[ADMIN] Deleting user ${user.email}. Reason: ${reason}`);
+
+    await this.prisma.chatMessage.deleteMany({ where: { senderId: userId } });
+    await this.prisma.chat.deleteMany({ where: { userId } });
+    await this.prisma.userBadge.deleteMany({ where: { userId } });
+    await this.prisma.donorProfile.deleteMany({ where: { userId } });
+    await this.prisma.donation.updateMany({
+      where: { donorId: userId },
+      data: { donorId: null },
+    });
+    await this.prisma.verificationMessage.deleteMany({
+      where: { senderId: userId },
+    });
+    await this.prisma.verificationRequest.deleteMany({ where: { userId } });
+    await this.prisma.campaign.deleteMany({ where: { authorId: userId } });
+    await this.prisma.profileView.deleteMany({
+      where: { OR: [{ viewerId: userId }, { targetId: userId }] },
+    });
+    await this.prisma.user.delete({ where: { id: userId } });
+
+    return { success: true };
   }
 }
