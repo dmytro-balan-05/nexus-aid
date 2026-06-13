@@ -37,6 +37,30 @@ export class ChatService {
     });
   }
 
+  async getOrCreateChatAdmin(volunteerId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: volunteerId },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    return this.prisma.chat.upsert({
+      where: { userId: volunteerId },
+      update: {},
+      create: { userId: volunteerId },
+      include: {
+        messages: {
+          include: {
+            sender: {
+              select: { id: true, name: true, avatar: true, role: true },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+        user: { select: { id: true, name: true, avatar: true, role: true } },
+      },
+    });
+  }
+
   async sendMessage(userId: string, text: string, isAdmin: boolean) {
     if (isAdmin) throw new ForbiddenException('Admin must specify chatId');
 
@@ -121,10 +145,7 @@ export class ChatService {
     const chats = await this.prisma.chat.findMany({
       include: {
         user: { select: { id: true, name: true, avatar: true, role: true } },
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
+        messages: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
       orderBy: { updatedAt: 'desc' },
     });

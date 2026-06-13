@@ -112,7 +112,7 @@ const FRAME_SHADOWS: Record<string, string> = {
 
 export default function ProfilePage() {
     const { user, isLoading, logout, refreshProfile } = useAuth();
-    const { addToast } = useNotification();
+    const { addToast, socket } = useNotification();
     const router = useRouter();
     const cardRef = useRef<DonorCardRef>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -157,6 +157,15 @@ export default function ProfilePage() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [verification?.messages]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const onVerificationMessage = (message: any) => {
+            setVerification(prev => prev ? { ...prev, messages: [...prev.messages, message] } : prev);
+        };
+        socket.on('verification_message', onVerificationMessage);
+        return () => { socket.off('verification_message', onVerificationMessage); };
+    }, [socket]);
 
     const startEditing = () => {
         setNewName(user?.name || '');

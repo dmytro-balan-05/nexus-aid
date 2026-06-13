@@ -8,7 +8,7 @@ import { useNotification } from '@/context/NotificationContext';
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nexus-aid-production.up.railway.app';
 
 export default function NotificationSocket() {
-    const { user } = useAuth();
+    const { user, refreshProfile } = useAuth();
     const { addToast, setUnreadChatCount, setNewBadgeCount, setAdminUnreadCount, setSocket, isChatOpen } = useNotification();
     const socketRef = useRef<Socket | null>(null);
     const badgeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -73,20 +73,30 @@ export default function NotificationSocket() {
                     transports: ['websocket', 'polling'],
                 });
 
-                socket.on('connect', () => console.log('[WS] Connected'));
-                socket.on('disconnect', () => setSocket(null));
+                socket.on('connect', () => {
+                    console.log('[WS] Connected/Reconnected');
+                    setSocket(socket);
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('[WS] Disconnected');
+                    setSocket(null);
+                });
 
                 socket.on('new_message', (data: any) => {
                     if (data.isAdmin === true && user.role === 'volonteer' && !isChatOpenRef.current) {
                         setUnreadChatCount(prev => prev + 1);
                         addToast('💬 Нове повідомлення від адміністратора', 'message');
-                    } else if (data.chatUserId && data.message && user.role === 'admin') {
+                    }
+                    if (data.chatUserId && data.message && user.role === 'admin') {
                         setAdminUnreadCount(prev => prev + 1);
                     }
                 });
 
-                socket.on('verification_approved', () => {
+                socket.on('verification_approved', async () => {
                     addToast('🎉 Вашу заявку схвалено! Ви тепер волонтер', 'success', '🎉');
+                    localStorage.setItem('known_role', 'volonteer');
+                    await refreshProfile();
                 });
 
                 socket.on('verification_message', () => {
@@ -100,7 +110,6 @@ export default function NotificationSocket() {
                 });
 
                 socketRef.current = socket;
-                setSocket(socket);
             } catch {}
         };
 
@@ -121,7 +130,10 @@ export default function NotificationSocket() {
             socketRef.current?.disconnect();
             socketRef.current = null;
             setSocket(null);
-            if (badgeIntervalRef.current) { clearInterval(badgeIntervalRef.current); badgeIntervalRef.current = null; }
+            if (badgeIntervalRef.current) {
+                clearInterval(badgeIntervalRef.current);
+                badgeIntervalRef.current = null;
+            }
         };
     }, [user]);
 

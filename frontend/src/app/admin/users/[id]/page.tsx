@@ -25,6 +25,7 @@ export default function AdminUserDetailPage() {
     const [isSavingRole, setIsSavingRole] = useState(false);
     const [selectedBadgeKey, setSelectedBadgeKey] = useState('');
     const [isGranting, setIsGranting] = useState(false);
+    const [isOpeningChat, setIsOpeningChat] = useState(false);
     const [message, setMessage] = useState('');
 
     const fetchUser = async () => {
@@ -71,6 +72,17 @@ export default function AdminUserDetailPage() {
         } catch (e: any) { showMessage(e.message || 'Помилка'); }
     };
 
+    const handleOpenChat = async () => {
+        setIsOpeningChat(true);
+        try {
+            const res = await fetch(`/api/chat/admin/init/${id}`, { method: 'POST', credentials: 'include' });
+            if (!res.ok) throw new Error();
+            const chat = await res.json();
+            router.push(`/admin/chats/${chat.id}`);
+        } catch { showMessage('Помилка відкриття чату'); }
+        finally { setIsOpeningChat(false); }
+    };
+
     if (isLoading) return <div className="p-6 text-[var(--text-secondary)]">Завантаження...</div>;
     if (!user) return <div className="p-6 text-red-500">Користувача не знайдено</div>;
 
@@ -92,13 +104,26 @@ export default function AdminUserDetailPage() {
                 <div className="flex items-start gap-4">
                     <img src={avatarUrl} alt={user.name} className="w-16 h-16 rounded-full object-cover border-2 border-[var(--border)]" />
                     <div className="flex-1">
-                        <h2 className="text-2xl font-bold text-[var(--text-primary)]">{user.name || 'Без імені'}</h2>
-                        <p className="text-[var(--text-secondary)] text-sm">{user.email}</p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : user.role === 'volonteer' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>{user.role}</span>
-                            {user.donorProfile && <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[user.donorProfile.level] || ''}`}>{user.donorProfile.level}</span>}
-                            <span className="text-xs text-[var(--text-secondary)]">Провайдер: {user.provider}</span>
-                            <span className="text-xs text-[var(--text-secondary)]">З {new Date(user.createdAt).toLocaleDateString('uk-UA')}</span>
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <h2 className="text-2xl font-bold text-[var(--text-primary)]">{user.name || 'Без імені'}</h2>
+                                <p className="text-[var(--text-secondary)] text-sm">{user.email}</p>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : user.role === 'volonteer' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>{user.role}</span>
+                                    {user.donorProfile && <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${LEVEL_COLORS[user.donorProfile.level] || ''}`}>{user.donorProfile.level}</span>}
+                                    <span className="text-xs text-[var(--text-secondary)]">Провайдер: {user.provider}</span>
+                                    <span className="text-xs text-[var(--text-secondary)]">З {new Date(user.createdAt).toLocaleDateString('uk-UA')}</span>
+                                </div>
+                            </div>
+                            {user.role === 'volonteer' && (
+                                <button
+                                    onClick={handleOpenChat}
+                                    disabled={isOpeningChat}
+                                    className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 disabled:opacity-50 transition flex items-center gap-2"
+                                >
+                                    💬 {isOpeningChat ? '...' : 'Написати'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

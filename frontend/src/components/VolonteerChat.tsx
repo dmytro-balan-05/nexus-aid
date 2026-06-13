@@ -48,6 +48,10 @@ export default function VolonteerChat() {
     };
 
     useEffect(() => {
+        return () => setIsChatOpen(false);
+    }, []);
+
+    useEffect(() => {
         if (!socket) return;
         setConnected(socket.connected);
         const onConnect = () => setConnected(true);
@@ -63,6 +67,7 @@ export default function VolonteerChat() {
     useEffect(() => {
         if (!socket || !isOpen) return;
         const onNewMessage = (message: ChatMessage) => {
+            if (!message.id) return;
             setChat(prev => {
                 if (!prev) return prev;
                 if (prev.messages.some(m => m.id === message.id)) return prev;
@@ -114,7 +119,7 @@ export default function VolonteerChat() {
         <div className="bg-[var(--bg-card)] rounded-2xl shadow-sm border border-[var(--border)] p-6">
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h2 className="text-lg font-bold text-[var(--text-primary)]">💬 Зв'язок з адміністрацією</h2>
+                    <h2 className="text-lg font-bold text-[var(--text-primary)]">💬 Звязок з адміністрацією</h2>
                     <p className="text-sm text-[var(--text-secondary)]">
                         Напишіть нам якщо є питання
                         {connected && <span className="ml-2 text-green-500 text-xs">● online</span>}

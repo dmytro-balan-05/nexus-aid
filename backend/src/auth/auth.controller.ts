@@ -44,7 +44,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('ws-token')
   async getWsToken(@Request() req) {
-    const token = await this.authService.getWsToken(req.user.id);
+    const token = await this.authService.getWsToken(req.user.id, req.user.role);
     return { token };
   }
 

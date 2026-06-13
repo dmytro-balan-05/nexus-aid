@@ -37,7 +37,11 @@ export class ChatController {
       body.text,
       false,
     );
-    this.chatGateway.emitAdminNotification(req.user.id, message);
+    this.chatGateway.emitAdminNotification(
+      req.user.id,
+      message.chatId,
+      message,
+    );
     return message;
   }
 
@@ -50,6 +54,12 @@ export class ChatController {
   getAllChats(@Request() req) {
     if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
     return this.chatService.getAllChats();
+  }
+
+  @Post('admin/init/:userId')
+  async initChatWithUser(@Param('userId') userId: string, @Request() req) {
+    if (req.user.role !== 'admin') throw new ForbiddenException('Only admin');
+    return this.chatService.getOrCreateChatAdmin(userId);
   }
 
   @Get('admin/:chatId')

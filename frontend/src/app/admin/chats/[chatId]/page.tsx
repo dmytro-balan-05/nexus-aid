@@ -39,7 +39,8 @@ export default function AdminChatDetailPage() {
         try {
             const res = await fetch(`/api/chat/admin/${chatId}`, { credentials: 'include' });
             if (!res.ok) return;
-            setChat(await res.json());
+            const data = await res.json();
+            setChat(data);
             setTimeout(scrollToBottom, 50);
         } finally {
             setIsLoading(false);
@@ -61,7 +62,8 @@ export default function AdminChatDetailPage() {
     useEffect(() => {
         if (!socket) return;
         const onNewMessage = (data: any) => {
-            if (data.chatUserId && data.message) {
+            // Filter: only process messages for THIS specific chat
+            if (data.chatId && data.chatId === chatId && data.message) {
                 setChat(prev => {
                     if (!prev) return prev;
                     if (prev.messages.some((m: ChatMessage) => m.id === data.message.id)) return prev;

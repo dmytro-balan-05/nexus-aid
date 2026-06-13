@@ -49,6 +49,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (payload.role === 'admin') {
         client.join('admin_room');
+        console.log(`[WS] Admin ${payload.sub} joined admin_room`);
       }
 
       console.log(`[WS] ${payload.role} ${payload.sub} connected`);
@@ -75,9 +76,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       false,
     );
     this.server.to(`chat:${userId}`).emit('new_message', message);
-    this.server
-      .to('admin_room')
-      .emit('new_message', { chatUserId: userId, message });
+    this.server.to('admin_room').emit('new_message', {
+      chatUserId: userId,
+      chatId: message.chatId,
+      message,
+    });
     return message;
   }
 
@@ -85,8 +88,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`chat:${userId}`).emit('new_message', message);
   }
 
-  emitAdminNotification(chatUserId: string, message: any) {
-    this.server.to('admin_room').emit('new_message', { chatUserId, message });
+  emitAdminNotification(chatUserId: string, chatId: string, message: any) {
+    this.server
+      .to('admin_room')
+      .emit('new_message', { chatUserId, chatId, message });
   }
 
   emitVerificationApproved(userId: string) {

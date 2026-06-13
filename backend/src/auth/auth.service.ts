@@ -99,7 +99,8 @@ export class AuthService {
 
     return user;
   }
-  async getWsToken(userId: string): Promise<string> {
-    return this.jwtService.sign({ sub: userId }, { expiresIn: '10m' });
+
+  async getWsToken(userId: string, role: string): Promise<string> {
+    return this.jwtService.sign({ sub: userId, role }, { expiresIn: '24h' });
   }
 }
