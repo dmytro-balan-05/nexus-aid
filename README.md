@@ -4,7 +4,6 @@
 [![GitLab Coverage](https://git.ztu.edu.ua/vt221_bdo/graduation_project/badges/main/coverage.svg)](https://git.ztu.edu.ua/vt221_bdo/graduation_project/-/jobs)
 [![GitHub CI](https://github.com/dmytro-balan-05/nexus-aid/actions/workflows/ci.yml/badge.svg)](https://github.com/dmytro-balan-05/nexus-aid/actions/workflows/ci.yml)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=dmytro-balan-05_nexus-aid&metric=alert_status)](https://sonarcloud.io/project/overview?id=dmytro-balan-05_nexus-aid)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=dmytro-balan-05_nexus-aid&metric=coverage)](https://sonarcloud.io/project/overview?id=dmytro-balan-05_nexus-aid)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dmytro-balan-05_nexus-aid&metric=security_rating)](https://sonarcloud.io/project/overview?id=dmytro-balan-05_nexus-aid)
 [![Mirror](https://github.com/dmytro-balan-05/nexus-aid/actions/workflows/mirror.yml/badge.svg)](https://github.com/dmytro-balan-05/nexus-aid/actions/workflows/mirror.yml)
 

@@ -14,6 +14,8 @@ cache:
 backend:install:
   stage: install
   image: node:20-alpine
+  tags:
+    - student
   script:
     - cd backend && npm ci
   artifacts:
@@ -24,8 +26,10 @@ backend:install:
 backend:test:
   stage: test
   image: node:20-alpine
+  tags:
+    - student
   script:
-    - cd backend && npm run test:cov
+    - cd backend && npx prisma generate && npm run test:cov
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   artifacts:
     reports:
@@ -39,6 +43,8 @@ backend:test:
 backend:build:
   stage: build
   image: node:20-alpine
+  tags:
+    - student
   script:
     - cd backend && npx prisma generate && npm run build
   only:

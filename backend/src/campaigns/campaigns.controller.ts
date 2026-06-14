@@ -38,7 +38,6 @@ const storageConfig = diskStorage({
     cb(null, `${randomName}${extname(file.originalname)}`);
   },
 });
-
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     'image/jpeg',
