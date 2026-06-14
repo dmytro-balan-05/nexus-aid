@@ -360,7 +360,7 @@ export class GamificationService {
       },
       {} as Record<string, number>,
     );
-    if (Object.values(byCampaign).some((count) => count >= 5))
+    if (Object.values(byCampaign).some((count: number) => count >= 5))
       badges.push('loyal');
 
     const urgentDonations = allDonations.filter(

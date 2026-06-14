@@ -20,3 +20,14 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
 CMD ["node", "dist/main"]
+
+# ── Stage 3: Local dev (docker-compose) ──
+FROM node:20-slim AS local
+WORKDIR /app
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npx prisma generate && npm run build
+EXPOSE 3000
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
